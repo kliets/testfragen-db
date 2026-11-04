@@ -21,7 +21,7 @@ const Export = (() => {
     doc.open();
     doc.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${esc(exam.title || 'Prüfung')}${solutions ? ' – Lösungen' : ''}</title>
       <link rel="stylesheet" href="${abs('vendor/katex.min.css')}"><link rel="stylesheet" href="${abs('css/paper.css')}"></head>
-      <body><div class="paper">${R.paper(exam, { solutions })}</div></body></html>`);
+      <body><div class="paper" style="${R.fontStyle(exam)}">${R.paper(exam, { solutions })}</div></body></html>`);
     doc.close();
     await new Promise(r => { f.onload = r; setTimeout(r, 1500); });
     try { await doc.fonts.ready; } catch (e) { /* ältere Browser */ }
@@ -94,8 +94,8 @@ const Export = (() => {
 
     // Inline-Markup → ODF-Spans (gleiche Syntax wie R.md)
     const inline = (src, gaps) => {
-      const re = /```(\w*)\n?([\s\S]*?)```|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$|\[\[(.+?)\]\]|`([^`\n]+)`|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*/g;
-      let out = '', last = 0, m; src = String(src ?? '');
+      const re = /```(\w*)\n?([\s\S]*?)```|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$|\[\[(.+?)\]\]|`([^`\n]+)`|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|__([^_\n]+)__/g;
+      let out = '', last = 0, m; src = String(src ?? '').replace(/(^|\n)- /g, '$1\u2022 ');
       const txt = s => s.split('\n').map(plain).join('<text:line-break/>');
       while ((m = re.exec(src))) {
         out += txt(src.slice(last, m.index)); last = re.lastIndex;
@@ -106,6 +106,7 @@ const Export = (() => {
         else if (m[6] !== undefined) out += '<text:span text:style-name="Tcode">' + plain(m[6]) + '</text:span>';
         else if (m[7] !== undefined) out += '<text:span text:style-name="Tb">' + plain(m[7]) + '</text:span>';
         else if (m[8] !== undefined) out += '<text:span text:style-name="Ti">' + plain(m[8]) + '</text:span>';
+        else if (m[9] !== undefined) out += '<text:span text:style-name="Tu">' + plain(m[9]) + '</text:span>';
       }
       return out + txt(src.slice(last));
     };
@@ -126,13 +127,19 @@ const Export = (() => {
     body.push(P('Ptotal', 'Gesamtpunktzahl: <text:span text:style-name="Tb">' + be(total) + '</text:span>'));
 
     const imgPara = (q) => {
-      if (!q.image) return;
-      const id = 'IMG' + frames.length; frames.push({ id, q });
-      body.push(P('Pimg', '@@' + id + '@@'));
+      R.imgs(q).forEach(im => {
+        const id = 'IMG' + frames.length; frames.push({ id, src: im.src, w: im.w });
+        body.push(P('Pimg', '@@' + id + '@@'));
+      });
     };
 
-    (exam.items || []).forEach((q, i) => {
-      body.push(P('Ptask', `Aufgabe ${i + 1} <text:span text:style-name="Tpts">(${be(R.qPoints(q))})</text:span>`));
+    let cnt = 0;
+    (exam.items || []).forEach((q) => {
+      if (q.type === 'block') {
+        if (q.text && q.text.trim()) body.push(P(q.style === 'heading' ? 'Ptask' : q.style === 'box' ? 'Phint' : 'Pbody', inline(q.text, gaps)));
+        imgPara(q); return;
+      }
+      body.push(P('Ptask', `Aufgabe ${++cnt} <text:span text:style-name="Tpts">(${be(R.qPoints(q))})</text:span>`));
       if (q.text && q.text.trim()) body.push(P('Pbody', inline(q.text, gaps)));
       imgPara(q);
       if (q.type === 'mc') {
@@ -158,18 +165,19 @@ const Export = (() => {
 
   async function odt(exam, solutions, opts = {}) {
     const { body, objs, frames } = build(exam, solutions, opts);
+    const fnt = R.fontOf(exam);
     const zip = new JSZip();
     const pics = [];
     let xml = body.join('\n');
 
     for (const f of frames) {
-      const img = await loadImg(f.q.image);
-      const ext = /^data:image\/png/.test(f.q.image) ? 'png' : 'jpg';
+      const img = await loadImg(f.src);
+      const ext = /^data:image\/png/.test(f.src) ? 'png' : 'jpg';
       let repl = '';
       if (img) {
-        const w = 17 * ((+f.q.imgw || 60) / 100), h = w * img.height / img.width;
+        const w = 17 * ((+f.w || 60) / 100), h = w * img.height / img.width;
         const name = `Pictures/${f.id}.${ext}`;
-        pics.push({ name, ext, bytes: dataToBytes(f.q.image) });
+        pics.push({ name, ext, bytes: dataToBytes(f.src) });
         repl = `<draw:frame draw:style-name="fr2" draw:name="${f.id}" text:anchor-type="as-char" svg:width="${w.toFixed(2)}cm" svg:height="${h.toFixed(2)}cm"><draw:image xlink:href="${name}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>`;
       }
       xml = xml.replace(`@@${f.id}@@`, repl);
@@ -178,7 +186,7 @@ const Export = (() => {
     const content = `<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content ${NS} office:version="1.2">
 <office:font-face-decls>
- <style:font-face style:name="Liberation Sans" svg:font-family="'Liberation Sans'" style:font-family-generic="swiss"/>
+ <style:font-face style:name="${X(fnt.odt)}" svg:font-family="'${X(fnt.odt)}'" style:font-family-generic="${fnt.gen}"/>
  <style:font-face style:name="Liberation Mono" svg:font-family="'Liberation Mono'" style:font-family-generic="modern"/>
 </office:font-face-decls>
 <office:automatic-styles>
@@ -199,6 +207,7 @@ const Export = (() => {
  <style:style style:name="Ti" style:family="text"><style:text-properties fo:font-style="italic"/></style:style>
  <style:style style:name="Tpts" style:family="text"><style:text-properties fo:font-weight="normal" fo:font-size="10pt" fo:color="#333333"/></style:style>
  <style:style style:name="Tcode" style:family="text"><style:text-properties style:font-name="Liberation Mono" fo:font-size="9.5pt" fo:background-color="#f0f0f0"/></style:style>
+ <style:style style:name="Tu" style:family="text"><style:text-properties style:text-underline-style="solid" style:text-underline-width="auto" style:text-underline-color="font-color"/></style:style>
  <style:style style:name="Tgap" style:family="text"><style:text-properties style:text-underline-style="solid" style:text-underline-width="auto" style:text-underline-color="font-color"/></style:style>
  <style:style style:name="Tfill" style:family="text"><style:text-properties fo:font-weight="bold" fo:color="#1a6b2a" style:text-underline-style="solid" style:text-underline-width="auto" style:text-underline-color="font-color"/></style:style>
  <style:style style:name="fr1" style:family="graphic"><style:graphic-properties style:vertical-pos="middle" style:vertical-rel="text" style:wrap="none" fo:padding="0cm" fo:border="none"/></style:style>
@@ -210,9 +219,9 @@ ${xml}
 
     const styles = `<?xml version="1.0" encoding="UTF-8"?>
 <office:document-styles ${NS} office:version="1.2">
-<office:font-face-decls><style:font-face style:name="Liberation Sans" svg:font-family="'Liberation Sans'" style:font-family-generic="swiss"/></office:font-face-decls>
+<office:font-face-decls><style:font-face style:name="${X(fnt.odt)}" svg:font-family="'${X(fnt.odt)}'" style:font-family-generic="${fnt.gen}"/></office:font-face-decls>
 <office:styles>
- <style:default-style style:family="paragraph"><style:paragraph-properties fo:line-height="130%"/><style:text-properties style:font-name="Liberation Sans" fo:font-size="11pt" fo:language="de" fo:country="DE"/></style:default-style>
+ <style:default-style style:family="paragraph"><style:paragraph-properties fo:line-height="130%"/><style:text-properties style:font-name="${X(fnt.odt)}" fo:font-size="${R.fsizeOf(exam)}pt" fo:language="de" fo:country="DE"/></style:default-style>
  <style:style style:name="Standard" style:family="paragraph" style:class="text"/>
 </office:styles>
 <office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" fo:margin-top="1.8cm" fo:margin-bottom="1.8cm" fo:margin-left="2cm" fo:margin-right="2cm"/></style:page-layout></office:automatic-styles>

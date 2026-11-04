@@ -65,6 +65,7 @@
     if (!Array.isArray(q.parts)) q.parts = [];
     q.parts = q.parts.map(p => ({ text: String(p.text || ''), points: R.num(p.points), afb: [1, 2, 3].includes(+p.afb) ? +p.afb : q.afb, solution: String(p.solution || '') }));
     q.grade = String(q.grade || '');
+    q.images = R.imgs(q).map(i => ({ src: String(i.src), w: R.num(i.w) || 60 })); q.image = ''; q.imgw = 60;
     delete q.id; delete q._u;
     return q;
   }
@@ -175,10 +176,14 @@
   /* ---------- Aufgaben-Editor (Modal) ---------- */
   function openEditor(opts) {
     const d = clone(opts.q); d.tags = d.tags || [];
+    d.images = R.imgs(d).map(i => ({ src: i.src, w: +i.w || 60 })); d.image = ''; d.imgw = 60;
+    const isBlock = d.type === 'block';
     const root = $('#modal-root');
+    const SYMS = ['°', '²', '³', '½', '±', '·', '×', '÷', '→', '⇒', '≤', '≥', '≠', '≈', '√', '∞', 'π', 'Δ', 'α', 'β', 'γ', 'λ', 'μ', 'ρ', 'σ', 'φ', 'θ', 'ω', 'Ω', '€'];
+    const tb = (gap = true) => `<div class="tb"><button type="button" data-m="fmt" data-k="b" title="Fett"><b>F</b></button><button type="button" data-m="fmt" data-k="i" title="Kursiv"><i>K</i></button><button type="button" data-m="fmt" data-k="u" title="Unterstrichen"><u>U</u></button><button type="button" data-m="fmt" data-k="l" title="Aufzählung (Zeilen mit „- “ beginnen)">• Liste</button><button type="button" data-m="fmt" data-k="f" title="Formel (LaTeX) einfügen">∑ Formel</button>${gap ? '<button type="button" data-m="fmt" data-k="g" title="Lücke im Text">▁ Lücke</button>' : ''}<button type="button" data-m="fmt" data-k="c" title="Code" style="font-family:monospace">&lt;/&gt;</button><select class="sym" data-sym title="Sonderzeichen einfügen"><option value="">Zeichen …</option>${SYMS.map(x => `<option>${x}</option>`).join('')}</select></div>`;
 
     const afbSel = (path, val) => `<select data-path="${path}" data-num>${[1, 2, 3].map(a => `<option value="${a}" ${+val === a ? 'selected' : ''}>${AFBL[a]}</option>`).join('')}</select>`;
-    const hint = () => ({
+    const hint = () => isBlock ? 'Für Material, Überschriften oder Hinweise zwischen den Aufgaben. Wird nicht nummeriert und zählt nicht zu den Punkten.' : ({
       luecke: 'Lücken im Text mit <code>[[Antwort]]</code> markieren – im Druck wird eine Linie daraus.',
       mc: 'Formeln: <code>$x^2$</code> inline, <code>$$\\frac{a}{b}$$</code> als eigene Zeile. Code: <code>`x = 1`</code>',
       wf: 'Der Aufgabentext ist die Aussage, die als wahr oder falsch bewertet wird.',
@@ -193,14 +198,15 @@
 
     const dynHtml = () => {
       let h = '';
+      if (isBlock) return `<label class="f">Darstellung<select data-path="style">${[['text', 'Normaler Text'], ['heading', 'Überschrift (fett)'], ['box', 'Hinweis-Kasten']].map(([k, v]) => `<option value="${k}" ${d.style === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
       if (d.type === 'teil') {
         h += `<label class="f">Antwortzeilen je Teilaufgabe <small>(freier Platz im Druck)</small><input type="number" min="0" step="1" data-num data-path="lines" value="${d.lines || 0}"></label>`;
         h += d.parts.map((p, i) => `<div class="sub"><div class="row" style="align-items:center"><b>Teilaufgabe ${String.fromCharCode(97 + i)})</b>
           <button type="button" class="btn sm danger" data-m="part-del" data-i="${i}" ${d.parts.length < 2 ? 'disabled' : ''} style="justify-self:end">Entfernen</button></div>
-          <textarea data-path="parts.${i}.text" placeholder="Aufgabentext der Teilaufgabe">${esc(p.text)}</textarea>
+          ${tb()}<textarea data-path="parts.${i}.text" placeholder="Aufgabentext der Teilaufgabe">${esc(p.text)}</textarea>
           <div class="row"><label class="f">Punkte<input type="number" min="0" step="0.5" data-num data-path="parts.${i}.points" value="${p.points}"></label>
           <label class="f">Anforderungsbereich${afbSel(`parts.${i}.afb`, p.afb)}</label></div>
-          <textarea data-path="parts.${i}.solution" placeholder="Lösung / Erwartungshorizont">${esc(p.solution)}</textarea></div>`).join('');
+          ${tb(false)}<textarea data-path="parts.${i}.solution" placeholder="Lösung / Erwartungshorizont">${esc(p.solution)}</textarea></div>`).join('');
         h += `<button type="button" class="btn" data-m="part-add">+ Teilaufgabe</button>`;
         return h;
       }
@@ -219,34 +225,34 @@
       if (d.type === 'frei') {
         h += `<label class="f">Antwortzeilen <small>(freier Platz im Druck, 0 = keiner)</small><input type="number" min="0" step="1" data-num data-path="lines" value="${d.lines || 0}"></label>`;
       }
-      h += `<label class="f">${d.type === 'luecke' ? 'Hinweis zur Lösung (optional)' : 'Lösung / Erwartungshorizont'}<textarea data-path="solution">${esc(d.solution)}</textarea></label>`;
+      h += `<label class="f">${d.type === 'luecke' ? 'Hinweis zur Lösung (optional)' : 'Lösung / Erwartungshorizont'}${tb(false)}<textarea data-path="solution">${esc(d.solution)}</textarea></label>`;
       return h;
     };
 
-    const imgHtml = () => `<div class="sub" id="imgbox"><b>Bild / Skizze (optional)</b>
-      ${d.image ? `<img src="${esc(d.image)}" alt="" style="max-width:100%;max-height:150px;border:1px solid var(--line);border-radius:6px;background:#fff">
-      <div class="row" style="align-items:end"><label class="f">Breite im Dokument<select data-path="imgw" data-num>${[30, 50, 60, 80, 100].map(w => `<option value="${w}" ${+d.imgw === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
-      <button type="button" class="btn sm danger" data-m="img-del" style="justify-self:start">Bild entfernen</button></div>` : ''}
-      <input type="file" id="imgfile" accept="image/*"></div>`;
+    const imgHtml = () => `<div class="sub" id="imgbox"><b>Bilder / Skizzen (optional, beliebig viele)</b>
+      ${d.images.map((im, i) => `<div class="imgrow"><img src="${esc(im.src)}" alt="">
+        <label class="f">Breite im Dokument<select data-path="images.${i}.w" data-num>${[20, 30, 40, 50, 60, 80, 100].map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
+        <div class="btns"><button type="button" class="btn sm" data-m="img-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} title="Nach vorn">↑</button><button type="button" class="btn sm" data-m="img-down" data-i="${i}" ${i === d.images.length - 1 ? 'disabled' : ''} title="Nach hinten">↓</button><button type="button" class="btn sm danger" data-m="img-del" data-i="${i}">Entfernen</button></div></div>`).join('')}
+      <input type="file" id="imgfile" accept="image/*" multiple><small class="meta">Tipp: Bilder aus der Zwischenablage mit Strg+V (Mac: Cmd+V) im Fenster einfügen. Die Bilder erscheinen unter dem Aufgabentext.</small></div>`;
 
     root.innerHTML = `<div class="modal-back"><div class="modal" role="dialog" aria-modal="true">
       <header><h2>${esc(opts.title)}</h2><button type="button" data-m="cancel" aria-label="Schließen">✕</button></header>
       <div class="modal-body two">
         <form class="form" id="qform" onsubmit="return false">
           ${opts.note ? `<div class="meta" style="background:#fff3d6;padding:8px 10px;border-radius:8px">${esc(opts.note)}</div>` : ''}
-          <div class="row">
+          ${isBlock ? '' : `<div class="row">
             <label class="f">Fach<select data-path="subject">${R.SUBJECTS.map(s => `<option ${d.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
             <label class="f">Klassenstufe<select data-path="grade">${gradeOptions(d.grade)}</select></label>
-          </div>
-          <div class="row">
+          </div>`}
+          ${isBlock ? '' : `<div class="row">
             <label class="f">Thema<input type="text" data-path="topic" list="topiclist" value="${esc(d.topic)}" placeholder="z. B. Quadratische Funktionen"></label>
             <label class="f">Aufgabentyp<select data-path="type">${Object.entries(R.TYPES).map(([k, v]) => `<option value="${k}" ${d.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-          </div>
+          </div>`}
           <datalist id="topiclist">${topics().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
-          <label class="f">Aufgabentext<textarea data-path="text" rows="5">${esc(d.text)}</textarea><small id="hint">${hint()}</small></label>
+          <label class="f">${isBlock ? 'Text' : 'Aufgabentext'}${tb(!isBlock)}<textarea data-path="text" rows="5">${esc(d.text)}</textarea><small id="hint">${hint()}</small></label>
           <div id="dyn" class="form">${dynHtml()}</div>
           ${imgHtml()}
-          <label class="f">Schlagwörter <small>(durch Komma getrennt)</small><input type="text" data-path="tagsText" value="${esc((d.tags || []).join(', '))}"></label>
+          ${isBlock ? '' : `<label class="f">Schlagwörter <small>(durch Komma getrennt)</small><input type="text" data-path="tagsText" value="${esc((d.tags || []).join(', '))}"></label>`}
         </form>
         <aside class="preview"><h3>Vorschau <label><input type="checkbox" id="prevsol"> mit Lösung</label></h3><div class="pv" id="qprev"></div></aside>
       </div>
@@ -265,15 +271,31 @@
       const v = t.type === 'checkbox' ? t.checked : t.type === 'radio' ? t.value === '1' : t.dataset.num !== undefined ? R.num(t.value) : t.value;
       setPath(d, p, v);
       if (p === 'type' && e.type === 'change') { ensure(); redyn(); return; }
-      if (p === 'imgw') { preview(); return; }
       preview();
     };
     form.addEventListener('input', onInput);
     form.addEventListener('change', onInput);
     $('#prevsol').addEventListener('change', preview);
 
-    const close = () => { root.innerHTML = ''; root.onclick = null; root.onchange = null; };
-    root.onchange = null;
+    const close = () => { root.innerHTML = ''; root.onclick = null; root.onchange = null; root.onmousedown = null; root.onpaste = null; };
+    root.onmousedown = e => { if (e.target.closest('.tb button')) e.preventDefault(); };
+    const fire = ta => ta.dispatchEvent(new Event('input', { bubbles: true }));
+    const fmtText = (ta, k) => {
+      const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+      if (k === 'l') {
+        const st = v.lastIndexOf('\n', a - 1) + 1, seg = v.slice(st, b).split('\n').map(l => /^- /.test(l) ? l : '- ' + l).join('\n');
+        ta.value = v.slice(0, st) + seg + v.slice(b); ta.setSelectionRange(st, st + seg.length); ta.focus(); fire(ta); return;
+      }
+      const W = { b: ['**', '**', 'fett'], i: ['*', '*', 'kursiv'], u: ['__', '__', 'unterstrichen'], f: ['$', '$', 'x^2'], g: ['[[', ']]', 'Lösung'], c: ['`', '`', 'code'] }[k];
+      const sel = v.slice(a, b) || W[2];
+      ta.value = v.slice(0, a) + W[0] + sel + W[1] + v.slice(b);
+      ta.setSelectionRange(a + W[0].length, a + W[0].length + sel.length); ta.focus(); fire(ta);
+    };
+    const addImages = async files => {
+      for (const f of files) { if (!/^image\//.test(f.type)) continue; try { d.images.push({ src: await fileToDataUrl(f), w: 60 }); } catch (err) { toast('Bild konnte nicht geladen werden.'); } }
+      $('#imgbox').outerHTML = imgHtml(); preview();
+    };
+    root.onpaste = e => { const fl = [...(e.clipboardData ? e.clipboardData.files : [])].filter(f => /^image\//.test(f.type)); if (fl.length) { e.preventDefault(); addImages(fl); } };
     root.onclick = async e => {
       const b = e.target.closest('[data-m]'); if (!b) return;
       const i = +b.dataset.i;
@@ -283,18 +305,25 @@
         case 'opt-del': d.options.splice(i, 1); redyn(); break;
         case 'part-add': d.parts.push({ text: '', points: 2, afb: d.afb || 1, solution: '' }); redyn(); break;
         case 'part-del': d.parts.splice(i, 1); redyn(); break;
-        case 'img-del': d.image = ''; $('#imgbox').outerHTML = imgHtml(); preview(); break;
+        case 'fmt': { const ta = b.closest('.tb').nextElementSibling; if (ta) fmtText(ta, b.dataset.k); break; }
+        case 'img-del': d.images.splice(i, 1); $('#imgbox').outerHTML = imgHtml(); preview(); break;
+        case 'img-up': case 'img-down': { const j = b.dataset.m === 'img-up' ? i - 1 : i + 1; if (d.images[j]) { [d.images[i], d.images[j]] = [d.images[j], d.images[i]]; $('#imgbox').outerHTML = imgHtml(); preview(); } break; }
         case 'save':
-          if (!d.text.trim() && !(d.type === 'teil' && d.parts.some(p => p.text.trim()))) { toast('Bitte einen Aufgabentext eingeben.'); return; }
+          if (isBlock) { if (!d.text.trim() && !d.images.length) { toast('Bitte Text eingeben oder ein Bild hinzufügen.'); return; } }
+          else if (!d.text.trim() && !(d.type === 'teil' && d.parts.some(p => p.text.trim()))) { toast('Bitte einen Aufgabentext eingeben.'); return; }
           if (d.type === 'mc' && !d.options.some(o => o.ok)) { if (!confirm('Es ist keine Antwort als richtig markiert. Trotzdem speichern?')) return; }
           try { await opts.onSave(d); close(); } catch (err) { toast(err.message); }
           break;
       }
     };
     root.onchange = async e => {
-      if (e.target.id !== 'imgfile' || !e.target.files[0]) return;
-      try { d.image = await fileToDataUrl(e.target.files[0]); $('#imgbox').outerHTML = imgHtml(); preview(); }
-      catch (err) { toast('Bild konnte nicht geladen werden.'); }
+      if (e.target.matches && e.target.matches('[data-sym]')) {
+        const ta = e.target.closest('.tb').nextElementSibling, v = e.target.value; e.target.value = '';
+        if (ta && v) { const a = ta.selectionStart; ta.value = ta.value.slice(0, a) + v + ta.value.slice(ta.selectionEnd); ta.setSelectionRange(a + v.length, a + v.length); ta.focus(); fire(ta); }
+        return;
+      }
+      if (e.target.id !== 'imgfile' || !e.target.files.length) return;
+      const fl = [...e.target.files]; e.target.value = ''; await addImages(fl);
     };
   }
 
@@ -336,7 +365,7 @@
     shell('pruefungen', `<div class="page-h"><h1>Prüfungen</h1><div class="actions"><button class="btn primary" data-a="e-new">+ Neue Prüfung</button></div></div>
       <div class="grid2">${S.exams.length ? S.exams.map(e => {
         const total = (e.items || []).reduce((a, q) => a + R.qPoints(q), 0);
-        return `<article class="card"><div class="tags"><span class="tag ${e.subject}">${esc(e.subject)}</span>${e.grade ? `<span class="tag">${esc(R.gradeLabel(e.grade))}</span>` : ''}<span class="tag">${(e.items || []).length} Aufgaben</span><span class="tag">${R.fmt(total)} BE</span></div>
+        return `<article class="card"><div class="tags"><span class="tag ${e.subject}">${esc(e.subject)}</span>${e.grade ? `<span class="tag">${esc(R.gradeLabel(e.grade))}</span>` : ''}<span class="tag">${(e.items || []).filter(i => i.type !== 'block').length} Aufgaben</span><span class="tag">${R.fmt(total)} BE</span></div>
         <b style="font-size:17px">${esc(e.title)}</b><div class="meta">${e.updatedBy ? esc(e.updatedBy) + ' · ' : ''}${e._u ? new Date(e._u).toLocaleDateString('de-DE') : ''}</div>
         <div class="btns"><a class="btn sm primary" style="text-decoration:none" href="#/pruefung/${e.id}">Öffnen</a>
         <button class="btn sm" data-a="e-dup" data-id="${e.id}">Duplizieren</button><button class="btn sm danger" data-a="e-del" data-id="${e.id}">Löschen</button></div></article>`;
@@ -379,7 +408,7 @@
         <select id="e-subject">${R.SUBJECTS.map(s => `<option ${e.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
         <select id="e-grade">${gradeOptions(e.grade)}</select>
         <input type="date" id="e-date" value="${esc(e.date || '')}">
-        <button class="btn sm" data-a="e-head">Kopfzeile …</button>
+        <button class="btn sm" data-a="e-head">Kopfzeile &amp; Schrift …</button>
         <span class="savestate" id="savestate">${S.dirty ? 'Ungespeicherte Änderungen' : 'Gespeichert ✓'}</span>
         <span style="flex:1"></span>
         <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="e-sol" ${S.solutions ? 'checked' : ''}> Lösungen anzeigen</label>
@@ -399,17 +428,18 @@
           <input type="text" id="s-q" placeholder="Suchen …" value="${esc(S.side.q)}">
           <select id="s-subject"><option value="">Alle Fächer</option>${R.SUBJECTS.map(s => `<option ${S.side.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
           <button class="btn sm" data-a="s-new">+ Neue Aufgabe direkt in der Prüfung</button>
+          <button class="btn sm" data-a="s-block" title="Überschrift, Material, Hinweis oder Bild zwischen den Aufgaben">+ Textblock / Bild einfügen</button>
           <small class="meta">Karten per Drag &amp; Drop in den Bogen ziehen oder auf „+ In Prüfung“ klicken.</small></div>
           <div class="list" id="s-list"></div></aside>
       </div></div>`);
     renderPaper(); renderStats(); renderSide();
   }
 
-  function renderPaper() { const p = $('#paper'); if (p && S.exam) p.innerHTML = R.paper(S.exam, { edit: true, solutions: S.solutions }); }
+  function renderPaper() { const p = $('#paper'); if (p && S.exam) { p.setAttribute('style', R.fontStyle(S.exam)); p.innerHTML = R.paper(S.exam, { edit: true, solutions: S.solutions }); } }
   function renderStats() {
     const el = $('#stats'); if (!el || !S.exam) return;
     const st = R.afbStats(S.exam.items);
-    el.innerHTML = `<span><b>${(S.exam.items || []).length}</b> Aufgaben</span><span><b>${R.fmt(st.total)}</b> BE gesamt</span>` +
+    el.innerHTML = `<span><b>${(S.exam.items || []).filter(i => i.type !== 'block').length}</b> Aufgaben</span><span><b>${R.fmt(st.total)}</b> BE gesamt</span>` +
       [1, 2, 3].map(k => `<span class="afbbar">AFB ${R.AFB[k]}
         <span class="track"><span class="fill" style="width:${st.pct(k)}%"></span><span class="soll" style="left:${R.AFB_SOLL[k]}%"></span></span>
         <b>${st.pct(k)} %</b> <small style="color:var(--muted)">(Soll ${R.AFB_SOLL[k]} %)</small></span>`).join('');
@@ -587,15 +617,18 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
   /* ---------- Kopfzeile-Dialog ---------- */
   function openHead() {
     const e = S.exam, root = $('#modal-root');
-    root.innerHTML = `<div class="modal-back"><div class="modal narrow"><header><h2>Kopfzeile der Prüfung</h2><button data-m="cancel" type="button">✕</button></header>
+    root.innerHTML = `<div class="modal-back"><div class="modal narrow"><header><h2>Kopfzeile und Schrift</h2><button data-m="cancel" type="button">✕</button></header>
       <div class="modal-body form">
         <label class="f">Schule / Institution<input type="text" id="h-school" value="${esc(e.school || '')}"></label>
         <label class="f">Dauer in Minuten<input type="number" id="h-dur" min="0" value="${esc(e.duration || '')}"></label>
+        <div class="row"><label class="f">Schriftart<select id="h-font">${Object.entries(R.FONTS).map(([k, v]) => `<option value="${k}" ${R.fontOf(e) === v ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}</select></label>
+        <label class="f">Schriftgröße<select id="h-fsize">${[10, 11, 12, 13, 14].map(n => `<option value="${n}" ${R.fsizeOf(e) === n ? 'selected' : ''}>${n} pt</option>`).join('')}</select></label></div>
+        <small class="meta">Gilt für Vorschau, PDF und ODT. Ist die Schrift auf dem Rechner nicht vorhanden, nimmt das Programm automatisch eine ähnliche.</small>
         <label class="f">Hinweise für die Prüflinge <small>(z. B. Hilfsmittel, Bearbeitungshinweise)</small><textarea id="h-hints" rows="4">${esc(e.hints || '')}</textarea></label>
       </div><footer><button class="btn" data-m="cancel" type="button">Abbrechen</button><button class="btn primary" data-m="ok" type="button">Übernehmen</button></footer></div></div>`;
     root.onclick = ev => {
       const b = ev.target.closest('[data-m]'); if (!b) return;
-      if (b.dataset.m === 'ok') { e.school = $('#h-school').value; e.duration = $('#h-dur').value; e.hints = $('#h-hints').value; touch(); renderPaper(); }
+      if (b.dataset.m === 'ok') { e.school = $('#h-school').value; e.duration = $('#h-dur').value; e.hints = $('#h-hints').value; e.font = $('#h-font').value; e.fsize = +$('#h-fsize').value; touch(); renderPaper(); }
       root.innerHTML = ''; root.onclick = null;
     };
   }
@@ -672,6 +705,10 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
             onSave: async d => { const it = clone(d); it.uid = Store.uuid(); S.exam.items.push(it); touch(); renderPaper(); renderStats(); } });
           break;
         }
+        case 's-block':
+          openEditor({ title: 'Textblock / Bild einfügen', q: R.newBlock(), note: '',
+            onSave: async d => { const it = clone(d); it.uid = Store.uuid(); S.exam.items.push(it); touch(); renderPaper(); renderStats(); } });
+          break;
         case 'i-up': case 'i-down': {
           const items = S.exam.items, i = items.findIndex(x => x.uid === uid), j = a === 'i-up' ? i - 1 : i + 1;
           if (j >= 0 && j < items.length) { [items[i], items[j]] = [items[j], items[i]]; touch(); renderPaper(); }
@@ -679,7 +716,7 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
         }
         case 'i-del': S.exam.items = S.exam.items.filter(x => x.uid !== uid); touch(); renderPaper(); renderStats(); renderSide(); break;
         case 'i-edit': openEditor({ title: 'Aufgabe in dieser Prüfung bearbeiten', q: item(), note: 'Änderungen gelten nur für diese Prüfung, nicht für die Aufgabenbank.',
-          onSave: async d => { const i = S.exam.items.findIndex(x => x.uid === uid); d.uid = uid; d.srcId = S.exam.items[i].srcId; S.exam.items[i] = d; touch(); renderPaper(); renderStats(); } }); break;
+          onSave: async d => { const i = S.exam.items.findIndex(x => x.uid === uid); d.uid = uid; d.srcId = S.exam.items[i].srcId; d.image = '';  S.exam.items[i] = d; touch(); renderPaper(); renderStats(); } }); break;
         case 'i-bank': { const c = clone(item()); delete c.uid; delete c.srcId; c.id = Store.uuid(); await saveQuestion(c); toast('In die Aufgabenbank übernommen'); renderSide(); break; }
       }
     } catch (err) { if (err && err.message !== 'auth') toast(err.message || 'Fehler'); }

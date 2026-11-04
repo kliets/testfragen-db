@@ -11,6 +11,18 @@ const R = (() => {
   const fmt = n => (Math.round(n * 100) / 100).toString().replace('.', ',');
   const gradeLabel = g => !g ? '' : (/^\d+$/.test(g) ? 'Klasse ' + g : g === 'E' ? 'Einführungsphase' : g);
 
+  const FONTS = {
+    sans:    { label: 'Arial (serifenlos)',      css: 'Arial, "Liberation Sans", Helvetica, sans-serif', odt: 'Arial', gen: 'swiss' },
+    serif:   { label: 'Times New Roman (Serifen)', css: '"Times New Roman", "Liberation Serif", Times, serif', odt: 'Times New Roman', gen: 'roman' },
+    verdana: { label: 'Verdana (breit, gut lesbar)', css: 'Verdana, "DejaVu Sans", Geneva, sans-serif', odt: 'Verdana', gen: 'swiss' },
+    calibri: { label: 'Calibri', css: 'Calibri, Carlito, "Liberation Sans", Arial, sans-serif', odt: 'Calibri', gen: 'swiss' },
+    georgia: { label: 'Georgia (Serifen, lesefreundlich)', css: 'Georgia, "DejaVu Serif", "Times New Roman", serif', odt: 'Georgia', gen: 'roman' }
+  };
+  const fontOf = e => FONTS[e && e.font] || FONTS.sans;
+  const fsizeOf = e => [10, 11, 12, 13, 14].includes(+(e && e.fsize)) ? +e.fsize : 11;
+  const fontStyle = e => `font-family:${fontOf(e).css};font-size:${fsizeOf(e)}pt`;
+  const imgs = q => (q && Array.isArray(q.images) && q.images.length) ? q.images.filter(i => i && i.src) : (q && q.image ? [{ src: q.image, w: +q.imgw || 60 }] : []);
+
   function tex(t, display) {
     try { return katex.renderToString(t, { displayMode: display, throwOnError: false }); }
     catch (e) { return esc(t); }
@@ -26,7 +38,9 @@ const R = (() => {
     s = s.replace(/\$([^$\n]+?)\$/g, (m, t) => put(tex(t, false)));
     s = s.replace(/\[\[(.+?)\]\]/g, (m, a) => put(o.gaps === 'fill' ? `<span class="gap fill">${esc(a)}</span>` : '<span class="gap"></span>'));
     s = s.replace(/`([^`\n]+)`/g, (m, c) => put('<code>' + esc(c) + '</code>'));
+    s = s.replace(/(^|\n)- /g, '$1\u2022 ');
     s = esc(s);
+    s = s.replace(/__([^_\n]+)__/g, '<u>$1</u>');
     s = s.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>');
     s = s.replace(/\n/g, '<br>');
     return s.replace(/\u0001(\d+)\u0002/g, (m, i) => stash[i]);
@@ -49,15 +63,19 @@ const R = (() => {
       text: '', points: 2, afb: 1, solution: '', lines: 0,
       options: [{ t: '', ok: false }, { t: '', ok: false }], wahr: true,
       parts: [{ text: '', points: 2, afb: 1, solution: '' }],
-      image: '', imgw: 60
+      image: '', imgw: 60, images: []
     };
   }
+  const newBlock = () => ({ type: 'block', style: 'text', text: '', images: [], points: 0, afb: 0 });
 
   const pts = n => `<span class="q-pts">${fmt(n)} BE</span>`;
   const lines = n => n > 0 ? `<div class="lines" style="height:${(n * 0.8).toFixed(1)}cm"></div>` : '';
   const sol = (t, label) => t && String(t).trim() ? `<div class="sol"><b>${label || 'Lösung'}:</b> ${md(t, { gaps: 'fill' })}</div>` : '';
 
+  const imgHtml = q => imgs(q).map(i => `<img class="q-img" alt="" src="${esc(i.src)}" style="width:${+i.w || 60}%">`).join('');
+
   function renderQ(q, n, o = {}) {
+    if (q.type === 'block') return `<section class="blk blk-${esc(q.style || 'text')}">${q.text && q.text.trim() ? `<div class="q-text">${md(q.text)}</div>` : ''}${imgHtml(q)}</section>`;
     const S = !!o.solutions;
     const gaps = S ? 'fill' : 'blank';
     let body = '';
@@ -72,7 +90,7 @@ const R = (() => {
     } else if (q.type === 'frei') {
       body = S ? '' : lines(+q.lines || 0);
     }
-    const img = q.image ? `<img class="q-img" alt="" src="${esc(q.image)}" style="width:${+q.imgw || 60}%">` : '';
+    const img = imgHtml(q);
     const solution = S && q.type !== 'teil' ? sol(q.solution) : (S && q.type === 'teil' ? sol(q.solution, 'Hinweis') : '');
     return `<section class="q"><div class="q-head"><span class="q-num">Aufgabe ${n}</span>${pts(qPoints(q))}</div>
       <div class="q-text">${md(q.text, { gaps })}</div>${img}${body}${solution}</section>`;
@@ -93,8 +111,9 @@ const R = (() => {
 
   function paper(exam, o = {}) {
     const items = exam.items || [];
+    let cnt = 0;
     const inner = items.map((q, i) => {
-      const html = renderQ(q, i + 1, { solutions: o.solutions });
+      const html = renderQ(q, q.type === 'block' ? 0 : ++cnt, { solutions: o.solutions });
       if (!o.edit) return html;
       return `<div class="item" data-uid="${q.uid}">
         <div class="item-tools">
@@ -102,7 +121,7 @@ const R = (() => {
           <button type="button" data-a="i-up" data-uid="${q.uid}" title="Nach oben">↑</button>
           <button type="button" data-a="i-down" data-uid="${q.uid}" title="Nach unten">↓</button>
           <button type="button" data-a="i-edit" data-uid="${q.uid}">Bearbeiten</button>
-          <button type="button" data-a="i-bank" data-uid="${q.uid}" title="Als eigene Aufgabe in die Aufgabenbank übernehmen">In Bank</button>
+          ${q.type === 'block' ? '' : `<button type="button" data-a="i-bank" data-uid="${q.uid}" title="Als eigene Aufgabe in die Aufgabenbank übernehmen">In Bank</button>`}
           <button type="button" data-a="i-del" data-uid="${q.uid}" class="danger" title="Aus der Prüfung entfernen">✕</button>
         </div>${html}</div>`;
     }).join('');
@@ -110,5 +129,5 @@ const R = (() => {
     return header(exam) + `<div id="paper-items" class="p-items">${inner}${empty}</div>`;
   }
 
-  return { SUBJECTS, GRADES, TYPES, AFB, AFB_SOLL, esc, num, fmt, md, tex, gradeLabel, qPoints, qAfbPoints, afbStats, newQuestion, renderQ, paper, header };
+  return { SUBJECTS, GRADES, TYPES, AFB, AFB_SOLL, esc, num, fmt, md, tex, gradeLabel, qPoints, qAfbPoints, afbStats, newQuestion, newBlock, renderQ, paper, header, FONTS, fontOf, fsizeOf, fontStyle, imgs };
 })();
