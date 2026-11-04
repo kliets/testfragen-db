@@ -1,4 +1,4 @@
-# Prüfungsbank
+# Testfragen-Datenbank
 
 ## Das kann die App
 
