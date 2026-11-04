@@ -43,3 +43,9 @@ pre.code code { background: none; padding: 0; }
   .paper { width: auto; min-height: 0; padding: 0; box-shadow: none; }
   .sol { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+.blk { break-inside: avoid; page-break-inside: avoid; margin: 0 0 .55cm; }
+.blk-heading .q-text { font-weight: 700; font-size: 13pt; }
+.blk-box { border: 1px solid #888; background: #f6f6f6; padding: .2cm .3cm; border-radius: 3px; }
+.blk-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+u { text-decoration: underline; }

@@ -165,3 +165,12 @@ label.f small { font-weight: 400; color: var(--muted); }
 .ki-box summary { cursor: pointer; font-weight: 600; }
 .ki-box textarea { font: 12.5px/1.45 ui-monospace, Menlo, Consolas, monospace; }
 #imp-status div { margin: 2px 0; }
+
+/* Editor: Formatierung und Bilder */
+.tb { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.tb button { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 3px 9px; font-size: 13px; cursor: pointer; }
+.tb button:hover { background: var(--accent-l); }
+.tb .sym { width: auto; padding: 3px 6px; font-size: 13px; }
+.imgrow { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.imgrow img { max-width: 90px; max-height: 70px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.imgrow .btns { display: flex; gap: 4px; }
