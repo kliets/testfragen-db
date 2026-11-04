@@ -13,6 +13,7 @@
     f: { subject: '', q: '', afb: '', topic: '', grade: '' },
     side: { subject: '', q: '' },
     exam: null, dirty: false, timer: null, solutions: false, mathText: false,
+    imp: { items: [], log: [], sol: false, opts: { subject: 'auto', grade: '', topic: '', titleTopic: true } },
     user: localStorage.getItem('pb_user') || ''
   };
 
@@ -74,7 +75,7 @@
     $('#app').innerHTML = `<div class="shell">
       <aside class="side">
         <div class="brand"><i>✓</i>Prüfungsbank</div>
-        <nav class="nav">${nav('aufgaben', 'Aufgabenbank')}${nav('pruefungen', 'Prüfungen')}${nav('info', 'Info &amp; Einstellungen')}</nav>
+        <nav class="nav">${nav('aufgaben', 'Aufgabenbank')}${nav('import', 'Dokument-Import')}${nav('pruefungen', 'Prüfungen')}${nav('info', 'Info &amp; Einstellungen')}</nav>
         <div class="foot">
           <span class="badge-mode ${Store.mode}">${Store.cloud ? 'Gemeinsam (Cloud)' : 'Lokal – nur dieser Browser'}</span>
           <span>${S.user ? 'Angemeldet als ' + esc(S.user) : '<a href="#/info">Namen eintragen</a>'}</span>
@@ -102,6 +103,7 @@
     const r = route();
     if (r.name !== 'pruefung') { if (S.dirty) await saveExam(); S.exam = null; }
     if (r.name === 'pruefung') return examView(r.id);
+    if (r.name === 'import') return importView();
     if (r.name === 'pruefungen') return examsView();
     if (r.name === 'info') return infoView();
     return bankView();
@@ -117,6 +119,7 @@
       .map(([v, l]) => `<button class="chip ${S.f.subject === v ? 'on' : ''}" data-a="f-subject" data-v="${v}">${l}</button>`).join('');
     shell('aufgaben', `
       <div class="page-h"><h1>Aufgabenbank</h1><div class="actions">
+        <a class="btn" href="#/import" style="text-decoration:none">Aus Dokument erstellen</a>
         <button class="btn" data-a="q-import">Importieren (JSON)</button>
         <button class="btn" data-a="q-export">Exportieren (JSON)</button>
         <button class="btn primary" data-a="q-new">+ Neue Aufgabe</button>
@@ -456,6 +459,114 @@
     else if (uid) moveItem(uid, idx);
   });
 
+
+  /* ---------- Dokument-Import ---------- */
+  const KI_PROMPT = `Zerlege das angehängte Dokument in einzelne Aufgaben und gib mir ALLE Aufgaben in EINER JSON-Datei zurück (nur ein Codeblock, sonst nichts).
+Format: {"format":"pruefungsbank-aufgaben","version":1,"questions":[ … ]}
+Pro Aufgabe: {"type":"frei|mc|wf|luecke|teil","subject":"Mathematik|Physik|Informatik","grade":"5–10 | E | Q1 | Q2","topic":"kurzes Thema","afb":1|2|3,"points":Zahl,"text":"Aufgabentext","solution":"Lösung oder leer","lines":0}
+Zusätzlich: Teilaufgaben a), b), … → type "teil" mit "parts":[{"text":"…","points":Zahl,"afb":1|2|3,"solution":"…"}]; Multiple Choice → type "mc" mit "options":[{"t":"…","ok":true|false}]; Wahr/Falsch → type "wf" mit "wahr":true|false; Lückentext → type "luecke", Lücken im Text als [[Lösungswort]].
+Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX in $…$, Punkte und Lösungen nur aus dem Dokument (sonst 0 bzw. ""), nichts erfinden. AFB nach Operatoren (I Reproduzieren, II Zusammenhänge herstellen, III Verallgemeinern/Beurteilen).`;
+
+  function importView() {
+    const o = S.imp.opts;
+    shell('import', `
+      <div class="page-h"><h1>Dokument-Import</h1><div class="actions"><a class="btn" href="#/aufgaben" style="text-decoration:none">← Aufgabenbank</a></div></div>
+      <div class="info" style="margin-bottom:14px"><p style="margin-top:0">Lade Klassenarbeiten, Arbeitsblätter oder Aufgabensammlungen hoch: <b>PDF, DOCX, ODT oder TXT</b>, auch mehrere Dateien auf einmal.
+      Die Dateien werden <b>nur in deinem Browser gelesen</b> und nirgends hochgeladen. Erkannt werden Aufgaben-Überschriften, Teilaufgaben a), b), Punkte, Lösungen, Multiple Choice, Lückentexte,
+      Formeln aus Word und LibreOffice sowie Bilder aus DOCX/ODT. Prüfe das Ergebnis unten, ändere es bei Bedarf und übernimm es dann in die Aufgabenbank.</p></div>
+      <div class="dz" id="dz"><b>Dateien hierher ziehen</b> oder
+        <label class="btn primary" style="cursor:pointer">Dateien auswählen<input id="docfiles" type="file" multiple hidden accept=".pdf,.docx,.odt,.txt,.md,.json"></label>
+        <div class="meta">PDF · DOCX · ODT · TXT · oder eine fertige JSON-Datei (z. B. von einer KI)</div></div>
+      <div class="row imp-opts" style="margin:12px 0 4px">
+        <label class="f">Fach<select id="imp-subject"><option value="auto" ${o.subject === 'auto' ? 'selected' : ''}>automatisch erkennen</option>${R.SUBJECTS.map(x => `<option ${o.subject === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+        <label class="f">Klassenstufe<select id="imp-grade"><option value="">aus dem Dokument / keine</option>${R.GRADES.map(g => `<option value="${g}" ${o.grade === g ? 'selected' : ''}>${esc(R.gradeLabel(g))}</option>`).join('')}</select></label>
+        <label class="f">Thema für alle <small>(optional)</small><input type="text" id="imp-topic" value="${esc(o.topic)}" placeholder="sonst Überschrift der Aufgabe"></label>
+      </div>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13.5px;margin-bottom:6px"><input type="checkbox" id="imp-title" ${o.titleTopic ? 'checked' : ''}> Überschrift der Aufgabe als Thema verwenden (wenn kein Thema eingetragen ist)</label>
+      <div id="imp-status" class="meta"></div>
+      <div id="imp-results"></div>
+      <details class="ki-box"><summary>Das Ergebnis passt nicht? Mit einer KI zerlegen lassen</summary>
+        <p>Lade das Dokument in einen KI-Chat (z. B. Claude) hoch und füge diesen Text dazu. Die KI gibt dir eine JSON-Datei zurück. Speichere sie als <code>.json</code> und ziehe sie oben in dieses Fenster, oder nutze in der Aufgabenbank „Importieren (JSON)“.</p>
+        <textarea id="ki-prompt" readonly rows="9">${esc(KI_PROMPT)}</textarea>
+        <button class="btn sm" data-a="ki-copy" style="margin-top:6px">Text kopieren</button></details>`);
+    const dz = $('#dz');
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+    dz.addEventListener('drop', e => impFiles([...e.dataTransfer.files]));
+    $('#imp-status').innerHTML = S.imp.log.map(l => `<div>${l}</div>`).join('');
+    renderImp();
+  }
+
+  function impStatus(html) { S.imp.log.push(html); const el = $('#imp-status'); if (el) el.innerHTML = S.imp.log.map(l => `<div>${l}</div>`).join(''); }
+
+  async function impFiles(files) {
+    const o = S.imp.opts;
+    for (const f of files) {
+      impStatus(`⏳ ${esc(f.name)} wird gelesen …`);
+      try {
+        let n = 0, hints = [];
+        if (/\.json$/i.test(f.name)) {
+          const j = JSON.parse(await f.text()); const arr = Array.isArray(j) ? j : (j.questions || []);
+          for (const raw of arr) {
+            const q = normalizeQ(raw, o.subject === 'auto' ? 'Mathematik' : o.subject);
+            if (o.grade && !q.grade) q.grade = o.grade; if (o.topic && !q.topic) q.topic = o.topic;
+            if (!q.text.trim() && !q.parts.some(p => p.text.trim())) continue;
+            S.imp.items.push({ id: Store.uuid(), include: true, q, hints: [], src: f.name }); n++;
+          }
+        } else {
+          const r = await DocImport.process(f, { subject: o.subject, grade: o.grade, topic: o.topic, titleTopic: o.titleTopic });
+          hints = r.hints;
+          for (const x of r.items) { S.imp.items.push({ id: Store.uuid(), include: true, q: normalizeQ(x.q, x.q.subject), hints: x.hints.filter(h => !/^AFB nach Operatoren/.test(h)), src: f.name }); n++; }
+        }
+        S.imp.log.pop();
+        impStatus(`✓ <b>${esc(f.name)}</b>: ${n} Aufgabe${n === 1 ? '' : 'n'} erkannt.${hints.length ? ' ' + hints.map(esc).join(' ') : ''}`);
+      } catch (e) {
+        S.imp.log.pop();
+        impStatus(`✗ <b>${esc(f.name)}</b>: ${esc(e.message || 'Fehler beim Lesen')}`);
+      }
+    }
+    renderImp();
+  }
+
+  function impCard(it, i) {
+    const q = it.q, afbs = [...new Set(R.qAfbPoints(q).map(x => x.afb).filter(Boolean))].sort();
+    return `<article class="imp-card ${it.include ? '' : 'off'}">
+      <div class="imp-h"><label><input type="checkbox" class="imp-inc" data-id="${it.id}" ${it.include ? 'checked' : ''}> <b>Aufgabe ${i + 1}</b></label>
+        <span class="meta">${esc(it.src)} · ${esc(q.subject)}${q.grade ? ' · ' + esc(R.gradeLabel(q.grade)) : ''}${q.topic ? ' · ' + esc(q.topic) : ''} · ${R.fmt(R.qPoints(q))} BE${afbs.length ? ' · AFB ' + afbs.map(a => R.AFB[a]).join('/') : ''} · ${R.TYPES[q.type]}</span>
+        <span style="flex:1"></span>
+        <button class="btn sm" data-a="imp-edit" data-id="${it.id}">Bearbeiten</button>
+        <button class="btn sm danger" data-a="imp-del" data-id="${it.id}">Entfernen</button></div>
+      ${it.hints.length ? `<div class="imp-warn">${it.hints.map(h => '⚠ ' + esc(h)).join('<br>')}</div>` : ''}
+      <div class="pv">${R.renderQ(q, i + 1, { solutions: S.imp.sol })}</div></article>`;
+  }
+
+  function impUpdateBar() {
+    const sel = S.imp.items.filter(i => i.include).length;
+    const a = $('#imp-count'); if (a) a.textContent = `${S.imp.items.length} Aufgaben erkannt · ${sel} ausgewählt`;
+    const b = $('#imp-savebtn'); if (b) b.textContent = `${sel} in die Aufgabenbank übernehmen`;
+  }
+
+  function renderImp() {
+    const el = $('#imp-results'); if (!el) return;
+    const items = S.imp.items;
+    if (!items.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="imp-bar">
+        <b id="imp-count"></b>
+        <button class="btn sm" data-a="imp-all">Alle</button><button class="btn sm" data-a="imp-none">Keine</button>
+        <span class="imp-bulk">Für ausgewählte setzen:
+          <select id="bulk-subject"><option value="">Fach</option>${R.SUBJECTS.map(x => `<option>${x}</option>`).join('')}</select>
+          <select id="bulk-grade"><option value="">Klasse</option>${R.GRADES.map(g => `<option value="${g}">${esc(R.gradeLabel(g))}</option>`).join('')}</select>
+          <input type="text" id="bulk-topic" placeholder="Thema" style="width:150px">
+          <button class="btn sm" data-a="imp-apply">Setzen</button></span>
+        <label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" id="imp-sol" ${S.imp.sol ? 'checked' : ''}> Lösungen zeigen</label>
+        <span style="flex:1"></span>
+        <button class="btn" data-a="imp-json">Als JSON herunterladen</button>
+        <button class="btn primary" data-a="imp-save" id="imp-savebtn"></button></div>
+      <div class="meta" style="margin:6px 0 10px">AFB wurden nach Operatoren (z. B. „nennen“ → I, „erklären“ → II, „beurteilen“ → III) geschätzt, bitte im Zweifel anpassen.</div>
+      <div class="imp-list">${items.map((it, i) => impCard(it, i)).join('')}</div>`;
+    impUpdateBar();
+  }
+
   /* ---------- Info ---------- */
   function infoView() {
     shell('info', `<div class="page-h"><h1>Info &amp; Einstellungen</h1></div><div class="info">
@@ -497,6 +608,41 @@
     const item = () => S.exam.items.find(i => i.uid === uid);
     try {
       switch (a) {
+        case 'ki-copy': { const ta = $('#ki-prompt'); try { await navigator.clipboard.writeText(KI_PROMPT); } catch (e) { ta.select(); document.execCommand('copy'); } toast('Text kopiert'); break; }
+        case 'imp-all': S.imp.items.forEach(i => i.include = true); renderImp(); break;
+        case 'imp-none': S.imp.items.forEach(i => i.include = false); renderImp(); break;
+        case 'imp-del': S.imp.items = S.imp.items.filter(i => i.id !== id); renderImp(); break;
+        case 'imp-edit': {
+          const it = S.imp.items.find(i => i.id === id);
+          openEditor({ title: 'Erkannte Aufgabe prüfen', q: it.q, note: it.hints.length ? it.hints.join(' · ') : '', onSave: async d => { it.q = normalizeQ(d, d.subject); it.hints = []; renderImp(); } });
+          break;
+        }
+        case 'imp-apply': {
+          const sj = $('#bulk-subject').value, gr = $('#bulk-grade').value, tp = $('#bulk-topic').value.trim();
+          S.imp.items.filter(i => i.include).forEach(i => { if (sj) i.q.subject = sj; if (gr) i.q.grade = gr; if (tp) i.q.topic = tp; });
+          renderImp(); break;
+        }
+        case 'imp-json': {
+          const list = S.imp.items.filter(i => i.include).map(i => clone(i.q));
+          if (!list.length) { toast('Keine Aufgaben ausgewählt.'); break; }
+          download(new Blob([JSON.stringify({ format: 'pruefungsbank-aufgaben', version: 1, questions: list }, null, 2)], { type: 'application/json' }), `aufgaben-import-${today()}.json`);
+          toast(list.length + ' Aufgaben als JSON gespeichert'); break;
+        }
+        case 'imp-save': {
+          const sel = S.imp.items.filter(i => i.include);
+          if (!sel.length) { toast('Keine Aufgaben ausgewählt.'); break; }
+          let n = 0;
+          try {
+            for (const it of sel) {
+              const q = clone(it.q); q.id = Store.uuid(); q.updatedBy = S.user || '';
+              const saved = await Store.save('questions', q); S.questions.unshift(saved);
+              S.imp.items = S.imp.items.filter(x => x !== it); n++;
+            }
+          } finally {
+            if (n) { S.imp.log = [`✓ ${n} Aufgabe${n === 1 ? '' : 'n'} in die Aufgabenbank übernommen. <a href="#/aufgaben">Zur Aufgabenbank</a>`]; $('#imp-status').innerHTML = S.imp.log.map(l => `<div>${l}</div>`).join(''); renderImp(); toast(n + ' Aufgaben übernommen'); }
+          }
+          break;
+        }
         case 'logout': ev.preventDefault(); Store.logout(); S.questions = []; S.exams = []; go(); break;
         case 'f-subject': S.f.subject = b.dataset.v; bankView(); break;
         case 'q-new': openEditor({ title: 'Neue Aufgabe', q: R.newQuestion(S.f.subject), onSave: async d => { await saveQuestion(d); renderList(); } }); break;
@@ -543,6 +689,7 @@
     if (id === 'f-q') { S.f.q = ev.target.value; renderList(); }
     else if (id === 's-q') { S.side.q = ev.target.value; renderSide(); }
     else if (id === 'e-title' && S.exam) { S.exam.title = ev.target.value; touch(); }
+    else if (id === 'imp-topic') S.imp.opts.topic = ev.target.value.trim();
     else if (id === 'u-name') { S.user = ev.target.value.trim(); localStorage.setItem('pb_user', S.user); }
   });
   document.addEventListener('change', async ev => {
@@ -556,6 +703,12 @@
     else if (id === 'e-date' && S.exam) { S.exam.date = v; touch(); renderPaper(); }
     else if (id === 'x-text') { S.mathText = ev.target.checked; }
     else if (id === 'e-sol') { S.solutions = ev.target.checked; renderPaper(); }
+    else if (id === 'docfiles') { const fl = [...ev.target.files]; ev.target.value = ''; impFiles(fl); }
+    else if (id === 'imp-subject') S.imp.opts.subject = v;
+    else if (id === 'imp-grade') S.imp.opts.grade = v;
+    else if (id === 'imp-title') S.imp.opts.titleTopic = ev.target.checked;
+    else if (id === 'imp-sol') { S.imp.sol = ev.target.checked; renderImp(); }
+    else if (ev.target.classList && ev.target.classList.contains('imp-inc')) { const it = S.imp.items.find(i => i.id === ev.target.dataset.id); if (it) { it.include = ev.target.checked; ev.target.closest('.imp-card').classList.toggle('off', !it.include); impUpdateBar(); } }
     else if (id === 'importfile' && ev.target.files[0]) {
       try {
         const j = JSON.parse(await ev.target.files[0].text());
