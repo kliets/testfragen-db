@@ -1,3 +1,4 @@
+if(typeof ReadableStream!=='undefined'&&!ReadableStream.prototype[Symbol.asyncIterator]){ReadableStream.prototype[Symbol.asyncIterator]=function(){const r=this.getReader();return{next(){return r.read()},return(){return r.cancel().catch(()=>{}).then(()=>({done:true,value:undefined}))},[Symbol.asyncIterator](){return this}}};}
 /**
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
