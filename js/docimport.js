@@ -1,6 +1,6 @@
 /* Dokument-Import: liest PDF, DOCX, ODT und Text im Browser und zerlegt den Inhalt nach festen Regeln in Aufgaben.
    Es wird nichts hochgeladen. Formeln aus Word (OMML) und LibreOffice (MathML) werden in LaTeX umgewandelt. */
-const DocImport = (() => {
+window.DocImport = (() => {
   'use strict';
   const IM = '\u0007';                       // Platzhalter für Bilder im Text
   const parseXml = s => new DOMParser().parseFromString(s, 'application/xml');

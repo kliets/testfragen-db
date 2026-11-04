@@ -514,7 +514,8 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
             S.imp.items.push({ id: Store.uuid(), include: true, q, hints: [], src: f.name }); n++;
           }
         } else {
-          const r = await DocImport.process(f, { subject: o.subject, grade: o.grade, topic: o.topic, titleTopic: o.titleTopic });
+          if (!window.DocImport) throw new Error('Das Programmteil js/docimport.js wurde nicht geladen (Datei fehlt im Repo oder alte Seite im Zwischenspeicher: Strg+Shift+R). Version: ' + (document.querySelector('script[src*="app.js"]') || {}).src);
+          const r = await window.DocImport.process(f, { subject: o.subject, grade: o.grade, topic: o.topic, titleTopic: o.titleTopic });
           hints = r.hints;
           for (const x of r.items) { S.imp.items.push({ id: Store.uuid(), include: true, q: normalizeQ(x.q, x.q.subject), hints: x.hints.filter(h => !/^AFB nach Operatoren/.test(h)), src: f.name }); n++; }
         }
