@@ -1,0 +1,45 @@
+/* Prüfungsbogen: wird in der Vorschau und im Druck/PDF verwendet */
+.paper {
+  background: #fff; color: #000; width: 21cm; min-height: 29.7cm; padding: 1.8cm; box-sizing: border-box;
+  font: 11pt/1.45 "Liberation Sans", Arial, Helvetica, sans-serif;
+}
+.paper h1 { font-size: 18pt; margin: .15cm 0 .15cm; line-height: 1.2; }
+.p-school { font-size: 9.5pt; color: #444; letter-spacing: .02em; }
+.p-meta { font-size: 10pt; color: #333; margin-bottom: .2cm; }
+.p-name { display: flex; gap: .8cm; margin: .55cm 0 .35cm; }
+.p-name span { flex: 1; border-bottom: 1px solid #000; padding-bottom: 2px; font-size: 10pt; min-height: .6cm; }
+.p-name span:first-child { flex: 2.2; }
+.p-hints { font-size: 10pt; border-left: 3px solid #999; padding: .1cm .3cm; margin: .3cm 0; color: #222; }
+.p-total { text-align: right; font-size: 10pt; margin-bottom: .4cm; padding-bottom: .25cm; border-bottom: 2px solid #000; }
+
+.q { break-inside: avoid; page-break-inside: avoid; margin: 0 0 .65cm; }
+.q-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; margin-bottom: .1cm; }
+.q-num { font-size: 12pt; }
+.q-pts { font-weight: 400; font-size: 10pt; white-space: nowrap; color: #333; }
+.q-text { margin-bottom: .15cm; }
+.q-img { display: block; max-width: 100%; margin: .2cm 0; }
+.mc, .parts { margin: .15cm 0 0; padding: 0; list-style: none; }
+.mc li { margin: .08cm 0; }
+.mc li.ok { font-weight: 700; }
+.box { display: inline-block; width: 1.1em; }
+.wf { margin: .15cm 0; }
+.parts { counter-reset: part; }
+.parts > li { counter-increment: part; position: relative; padding-left: .8cm; margin: .2cm 0; }
+.parts > li::before { content: counter(part, lower-alpha) ")"; position: absolute; left: 0; font-weight: 700; }
+.part-text { display: flex; justify-content: space-between; gap: .5cm; }
+.part-main { flex: 1; min-width: 0; }
+.part-text .q-pts { align-self: flex-start; }
+.lines { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(.8cm - 1px), #bbb calc(.8cm - 1px), #bbb .8cm); margin-top: .1cm; }
+.gap { display: inline-block; min-width: 2.4cm; border-bottom: 1px solid #000; height: 1em; vertical-align: baseline; }
+.gap.fill { border-bottom: 1px solid #1a6b2a; color: #1a6b2a; font-weight: 700; height: auto; padding: 0 .1cm; text-align: center; }
+.sol { margin-top: .15cm; padding: .12cm .3cm; background: #eef7ee; border-left: 3px solid #1a6b2a; color: #123c1a; font-size: 10pt; }
+pre.code { background: #f3f3f3; border: 1px solid #ddd; border-radius: 3px; padding: .15cm .25cm; margin: .15cm 0; font: 9.5pt/1.35 "Liberation Mono", Consolas, monospace; white-space: pre-wrap; }
+code { font-family: "Liberation Mono", Consolas, monospace; font-size: .92em; background: #f3f3f3; padding: 0 .08cm; border-radius: 2px; }
+pre.code code { background: none; padding: 0; }
+
+@page { size: A4; margin: 1.6cm 1.8cm; }
+@media print {
+  html, body { background: #fff !important; }
+  .paper { width: auto; min-height: 0; padding: 0; box-shadow: none; }
+  .sol { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
