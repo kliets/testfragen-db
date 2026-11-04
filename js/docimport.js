@@ -314,8 +314,8 @@ window.DocImport = (() => {
   let pdfMod = null;
   async function readPdf(buf) {
     if (!pdfMod) {
-      pdfMod = await import(new URL('vendor/pdf.min.mjs', document.baseURI).href);
-      pdfMod.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.mjs', document.baseURI).href;
+      pdfMod = await import(new URL('vendor/pdf.min.mjs?v=3', document.baseURI).href);
+      pdfMod.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.mjs?v=3', document.baseURI).href;
     }
     const pdf = await pdfMod.getDocument({ data: new Uint8Array(buf) }).promise;
     const pages = [];
