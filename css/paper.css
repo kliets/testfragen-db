@@ -49,3 +49,6 @@ pre.code code { background: none; padding: 0; }
 .blk-box { border: 1px solid #888; background: #f6f6f6; padding: .2cm .3cm; border-radius: 3px; }
 .blk-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 u { text-decoration: underline; }
+img.inl { vertical-align: middle; max-width: 100%; }
+.fig { margin: .1cm 0; }
+.fig .q-img { margin: 0; }
