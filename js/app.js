@@ -65,7 +65,7 @@
     if (!Array.isArray(q.parts)) q.parts = [];
     q.parts = q.parts.map(p => ({ text: String(p.text || ''), points: R.num(p.points), afb: [1, 2, 3].includes(+p.afb) ? +p.afb : q.afb, solution: String(p.solution || '') }));
     q.grade = String(q.grade || '');
-    q.images = R.imgs(q).map(i => ({ src: String(i.src), w: R.num(i.w) || 60 })); q.image = ''; q.imgw = 60;
+    q.images = R.imgs(q).map(i => Object.assign({ src: String(i.src), w: R.num(i.w) || 60 }, i.id ? { id: String(i.id) } : {}, i.inline ? { inline: true, hcm: R.num(i.hcm) || 0.6 } : {}, i.placed ? { placed: true } : {})); q.image = ''; q.imgw = 60;
     delete q.id; delete q._u;
     return q;
   }
@@ -176,7 +176,7 @@
   /* ---------- Aufgaben-Editor (Modal) ---------- */
   function openEditor(opts) {
     const d = clone(opts.q); d.tags = d.tags || [];
-    d.images = R.imgs(d).map(i => ({ src: i.src, w: +i.w || 60 })); d.image = ''; d.imgw = 60;
+    d.images = R.imgs(d).map(i => Object.assign({}, i, { w: +i.w || 60 })); d.image = ''; d.imgw = 60;
     const isBlock = d.type === 'block';
     const root = $('#modal-root');
     const SYMS = ['°', '²', '³', '½', '±', '·', '×', '÷', '→', '⇒', '≤', '≥', '≠', '≈', '√', '∞', 'π', 'Δ', 'α', 'β', 'γ', 'λ', 'μ', 'ρ', 'σ', 'φ', 'θ', 'ω', 'Ω', '€'];
@@ -230,8 +230,10 @@
     };
 
     const imgHtml = () => `<div class="sub" id="imgbox"><b>Bilder / Skizzen (optional, beliebig viele)</b>
-      ${d.images.map((im, i) => `<div class="imgrow"><img src="${esc(im.src)}" alt="">
-        <label class="f">Breite im Dokument<select data-path="images.${i}.w" data-num>${[20, 30, 40, 50, 60, 80, 100].map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
+      ${d.images.map((im, i) => im.inline || im.placed ? `<div class="imgrow"><img src="${esc(im.src)}" alt="" style="max-height:40px">
+        <div class="meta">${im.inline ? 'Formel/Grafik im Text (Bildausschnitt aus dem Import)' : 'Bild im Text'} – Platzhalter <code>{img:${esc(im.id)}}</code>: im Text an die gewünschte Stelle verschieben.</div>
+        <div class="btns">${im.inline ? '' : `<select data-path="images.${i}.w" data-num title="Breite">${[...new Set([20, 30, 40, 50, 60, 80, 100, +im.w])].sort((a, b) => a - b).map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select>`}<button type="button" class="btn sm danger" data-m="img-del" data-i="${i}">Entfernen</button></div></div>` : `<div class="imgrow"><img src="${esc(im.src)}" alt="">
+        <label class="f">Breite im Dokument<select data-path="images.${i}.w" data-num>${[...new Set([20, 30, 40, 50, 60, 80, 100, +im.w])].sort((a, b) => a - b).map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
         <div class="btns"><button type="button" class="btn sm" data-m="img-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} title="Nach vorn">↑</button><button type="button" class="btn sm" data-m="img-down" data-i="${i}" ${i === d.images.length - 1 ? 'disabled' : ''} title="Nach hinten">↓</button><button type="button" class="btn sm danger" data-m="img-del" data-i="${i}">Entfernen</button></div></div>`).join('')}
       <input type="file" id="imgfile" accept="image/*" multiple><small class="meta">Tipp: Bilder aus der Zwischenablage mit Strg+V (Mac: Cmd+V) im Fenster einfügen. Die Bilder erscheinen unter dem Aufgabentext.</small></div>`;
 
@@ -306,7 +308,11 @@
         case 'part-add': d.parts.push({ text: '', points: 2, afb: d.afb || 1, solution: '' }); redyn(); break;
         case 'part-del': d.parts.splice(i, 1); redyn(); break;
         case 'fmt': { const ta = b.closest('.tb').nextElementSibling; if (ta) fmtText(ta, b.dataset.k); break; }
-        case 'img-del': d.images.splice(i, 1); $('#imgbox').outerHTML = imgHtml(); preview(); break;
+        case 'img-del': {
+          const im = d.images[i];
+          if (im && (im.inline || im.placed)) { const tok = new RegExp('\\s?\\{img:' + im.id + '\\}', 'g'); d.text = d.text.replace(tok, ''); d.solution = (d.solution || '').replace(tok, ''); (d.options || []).forEach(o => o.t = o.t.replace(tok, '')); (d.parts || []).forEach(p => { p.text = p.text.replace(tok, ''); p.solution = (p.solution || '').replace(tok, ''); }); $$('#qform textarea, #qform input[type=text]').forEach(el => { if (el.dataset.path) { const v = el.dataset.path.split('.').reduce((o, k) => o && o[k], d); if (typeof v === 'string') el.value = v; } }); }
+          d.images.splice(i, 1); $('#imgbox').outerHTML = imgHtml(); preview(); break; }
+        case 'img-del-old': d.images.splice(i, 1); $('#imgbox').outerHTML = imgHtml(); preview(); break;
         case 'img-up': case 'img-down': { const j = b.dataset.m === 'img-up' ? i - 1 : i + 1; if (d.images[j]) { [d.images[i], d.images[j]] = [d.images[j], d.images[i]]; $('#imgbox').outerHTML = imgHtml(); preview(); } break; }
         case 'save':
           if (isBlock) { if (!d.text.trim() && !d.images.length) { toast('Bitte Text eingeben oder ein Bild hinzufügen.'); return; } }
@@ -503,7 +509,7 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
       <div class="page-h"><h1>Dokument-Import</h1><div class="actions"><a class="btn" href="#/aufgaben" style="text-decoration:none">← Aufgabenbank</a></div></div>
       <div class="info" style="margin-bottom:14px"><p style="margin-top:0">Lade Klassenarbeiten, Arbeitsblätter oder Aufgabensammlungen hoch: <b>PDF, DOCX, ODT oder TXT</b>, auch mehrere Dateien auf einmal.
       Die Dateien werden <b>nur in deinem Browser gelesen</b> und nirgends hochgeladen. Erkannt werden Aufgaben-Überschriften, Teilaufgaben a), b), Punkte, Lösungen, Multiple Choice, Lückentexte,
-      Formeln aus Word und LibreOffice sowie Bilder aus DOCX/ODT. Prüfe das Ergebnis unten, ändere es bei Bedarf und übernimm es dann in die Aufgabenbank.</p></div>
+      Formeln aus Word und LibreOffice sowie Bilder. Bei PDFs werden Bilder, Grafiken und Formeln (Brüche, Wurzeln, Summen, Integrale) als Bildausschnitt an der passenden Stelle übernommen, sie lassen sich dann nicht als Text bearbeiten. Bei DOCX/ODT bleiben Formeln bearbeitbar. Prüfe das Ergebnis unten, ändere es bei Bedarf und übernimm es dann in die Aufgabenbank.</p></div>
       <div class="dz" id="dz"><b>Dateien hierher ziehen</b> oder
         <label class="btn primary" style="cursor:pointer">Dateien auswählen<input id="docfiles" type="file" multiple hidden accept=".pdf,.docx,.odt,.txt,.md,.json"></label>
         <div class="meta">PDF · DOCX · ODT · TXT · oder eine fertige JSON-Datei (z. B. von einer KI)</div></div>

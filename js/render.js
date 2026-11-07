@@ -36,6 +36,7 @@ const R = (() => {
     s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, l, c) => put('<pre class="code"><code>' + esc(c.replace(/\n$/, '')) + '</code></pre>'));
     s = s.replace(/\$\$([\s\S]+?)\$\$/g, (m, t) => put(tex(t, true)));
     s = s.replace(/\$([^$\n]+?)\$/g, (m, t) => put(tex(t, false)));
+    s = s.replace(/\{img:([\w-]+)\}/g, (m, id) => { const i = o.imgs && o.imgs[id]; return !i ? '' : put(i.inline ? `<img class="inl" alt="" src="${esc(i.src)}" style="height:${+i.hcm || 0.6}cm">` : `<div class="fig"><img class="q-img" alt="" src="${esc(i.src)}" style="width:${+i.w || 60}%"></div>`); });
     s = s.replace(/\[\[(.+?)\]\]/g, (m, a) => put(o.gaps === 'fill' ? `<span class="gap fill">${esc(a)}</span>` : '<span class="gap"></span>'));
     s = s.replace(/`([^`\n]+)`/g, (m, c) => put('<code>' + esc(c) + '</code>'));
     s = s.replace(/(^|\n)- /g, '$1\u2022 ');
@@ -70,30 +71,31 @@ const R = (() => {
 
   const pts = n => `<span class="q-pts">${fmt(n)} BE</span>`;
   const lines = n => n > 0 ? `<div class="lines" style="height:${(n * 0.8).toFixed(1)}cm"></div>` : '';
-  const sol = (t, label) => t && String(t).trim() ? `<div class="sol"><b>${label || 'Lösung'}:</b> ${md(t, { gaps: 'fill' })}</div>` : '';
+  const sol = (t, label, im) => t && String(t).trim() ? `<div class="sol"><b>${label || 'Lösung'}:</b> ${md(t, { gaps: 'fill', imgs: im })}</div>` : '';
 
-  const imgHtml = q => imgs(q).map(i => `<img class="q-img" alt="" src="${esc(i.src)}" style="width:${+i.w || 60}%">`).join('');
+  const imgHtml = q => imgs(q).filter(i => !i.inline && !i.placed).map(i => `<img class="q-img" alt="" src="${esc(i.src)}" style="width:${+i.w || 60}%">`).join('');
 
   function renderQ(q, n, o = {}) {
-    if (q.type === 'block') return `<section class="blk blk-${esc(q.style || 'text')}">${q.text && q.text.trim() ? `<div class="q-text">${md(q.text)}</div>` : ''}${imgHtml(q)}</section>`;
+    const IMG = {}; imgs(q).forEach(i => { if (i.id) IMG[i.id] = i; });
+    if (q.type === 'block') return `<section class="blk blk-${esc(q.style || 'text')}">${q.text && q.text.trim() ? `<div class="q-text">${md(q.text, { imgs: IMG })}</div>` : ''}${imgHtml(q)}</section>`;
     const S = !!o.solutions;
     const gaps = S ? 'fill' : 'blank';
     let body = '';
     if (q.type === 'mc') {
       body = '<ul class="mc">' + (q.options || []).map((op, i) =>
-        `<li class="${S && op.ok ? 'ok' : ''}"><span class="box">${S && op.ok ? '☒' : '☐'}</span> ${String.fromCharCode(65 + i)}) ${md(op.t)}</li>`).join('') + '</ul>';
+        `<li class="${S && op.ok ? 'ok' : ''}"><span class="box">${S && op.ok ? '☒' : '☐'}</span> ${String.fromCharCode(65 + i)}) ${md(op.t, { imgs: IMG })}</li>`).join('') + '</ul>';
     } else if (q.type === 'wf') {
       body = `<div class="wf"><span class="box">${S && q.wahr ? '☒' : '☐'}</span> wahr &nbsp;&nbsp; <span class="box">${S && !q.wahr ? '☒' : '☐'}</span> falsch</div>`;
     } else if (q.type === 'teil') {
       body = '<ol class="parts">' + (q.parts || []).map(p =>
-        `<li><div class="part-text"><div class="part-main">${md(p.text, { gaps })}</div>${pts(num(p.points))}</div>${S ? sol(p.solution) : lines(Math.max(0, +q.lines || 0))}</li>`).join('') + '</ol>';
+        `<li><div class="part-text"><div class="part-main">${md(p.text, { gaps, imgs: IMG })}</div>${pts(num(p.points))}</div>${S ? sol(p.solution, '', IMG) : lines(Math.max(0, +q.lines || 0))}</li>`).join('') + '</ol>';
     } else if (q.type === 'frei') {
       body = S ? '' : lines(+q.lines || 0);
     }
     const img = imgHtml(q);
-    const solution = S && q.type !== 'teil' ? sol(q.solution) : (S && q.type === 'teil' ? sol(q.solution, 'Hinweis') : '');
+    const solution = S && q.type !== 'teil' ? sol(q.solution, '', IMG) : (S && q.type === 'teil' ? sol(q.solution, 'Hinweis', IMG) : '');
     return `<section class="q"><div class="q-head"><span class="q-num">Aufgabe ${n}</span>${pts(qPoints(q))}</div>
-      <div class="q-text">${md(q.text, { gaps })}</div>${img}${body}${solution}</section>`;
+      <div class="q-text">${md(q.text, { gaps, imgs: IMG })}</div>${img}${body}${solution}</section>`;
   }
 
   function header(exam) {

@@ -94,7 +94,7 @@ const Export = (() => {
 
     // Inline-Markup → ODF-Spans (gleiche Syntax wie R.md)
     const inline = (src, gaps) => {
-      const re = /```(\w*)\n?([\s\S]*?)```|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$|\[\[(.+?)\]\]|`([^`\n]+)`|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|__([^_\n]+)__/g;
+      const re = /```(\w*)\n?([\s\S]*?)```|\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$|\[\[(.+?)\]\]|`([^`\n]+)`|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|__([^_\n]+)__|\{img:([\w-]+)\}/g;
       let out = '', last = 0, m; src = String(src ?? '').replace(/(^|\n)- /g, '$1\u2022 ');
       const txt = s => s.split('\n').map(plain).join('<text:line-break/>');
       while ((m = re.exec(src))) {
@@ -107,10 +107,12 @@ const Export = (() => {
         else if (m[7] !== undefined) out += '<text:span text:style-name="Tb">' + plain(m[7]) + '</text:span>';
         else if (m[8] !== undefined) out += '<text:span text:style-name="Ti">' + plain(m[8]) + '</text:span>';
         else if (m[9] !== undefined) out += '<text:span text:style-name="Tu">' + plain(m[9]) + '</text:span>';
+        else if (m[10] !== undefined) { const im = (cur.imgs || []).find(i => i.id === m[10]); if (im) { const id = 'IMG' + frames.length; frames.push({ id, src: im.src, hcm: im.inline ? (im.hcm || 0.6) : 0, w: im.w }); out += im.inline ? '@@' + id + '@@' : '<text:line-break/>@@' + id + '@@<text:line-break/>'; } }
       }
       return out + txt(src.slice(last));
     };
 
+    const cur = { imgs: [] };
     const P = (style, inner) => `<text:p text:style-name="${style}">${inner}</text:p>`;
     const be = n => R.fmt(n) + ' BE';
     const body = [];
@@ -127,7 +129,7 @@ const Export = (() => {
     body.push(P('Ptotal', 'Gesamtpunktzahl: <text:span text:style-name="Tb">' + be(total) + '</text:span>'));
 
     const imgPara = (q) => {
-      R.imgs(q).forEach(im => {
+      R.imgs(q).filter(im => !im.inline && !im.placed).forEach(im => {
         const id = 'IMG' + frames.length; frames.push({ id, src: im.src, w: im.w });
         body.push(P('Pimg', '@@' + id + '@@'));
       });
@@ -135,6 +137,7 @@ const Export = (() => {
 
     let cnt = 0;
     (exam.items || []).forEach((q) => {
+      cur.imgs = R.imgs(q);
       if (q.type === 'block') {
         if (q.text && q.text.trim()) body.push(P(q.style === 'heading' ? 'Ptask' : q.style === 'box' ? 'Phint' : 'Pbody', inline(q.text, gaps)));
         imgPara(q); return;
@@ -175,10 +178,11 @@ const Export = (() => {
       const ext = /^data:image\/png/.test(f.src) ? 'png' : 'jpg';
       let repl = '';
       if (img) {
-        const w = 17 * ((+f.w || 60) / 100), h = w * img.height / img.width;
+        let w = 17 * ((+f.w || 60) / 100), h = w * img.height / img.width;
+        if (f.hcm) { h = f.hcm; w = h * img.width / img.height; }
         const name = `Pictures/${f.id}.${ext}`;
         pics.push({ name, ext, bytes: dataToBytes(f.src) });
-        repl = `<draw:frame draw:style-name="fr2" draw:name="${f.id}" text:anchor-type="as-char" svg:width="${w.toFixed(2)}cm" svg:height="${h.toFixed(2)}cm"><draw:image xlink:href="${name}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>`;
+        repl = `<draw:frame draw:style-name="${f.hcm ? 'fr1' : 'fr2'}" draw:name="${f.id}" text:anchor-type="as-char" svg:width="${w.toFixed(2)}cm" svg:height="${h.toFixed(2)}cm"><draw:image xlink:href="${name}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>`;
       }
       xml = xml.replace(`@@${f.id}@@`, repl);
     }
