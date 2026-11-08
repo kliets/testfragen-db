@@ -3,18 +3,19 @@
   background: #fff; color: #000; width: 21cm; min-height: 29.7cm; padding: 1.8cm; box-sizing: border-box;
   font: 11pt/1.45 "Liberation Sans", Arial, Helvetica, sans-serif;
 }
-.paper h1 { font-size: 18pt; margin: .15cm 0 .15cm; line-height: 1.2; }
+.paper h1 { font-size: 18pt; margin: .15cm 0 .15cm; line-height: 1.2; color: var(--acc, #000); }
 .p-school { font-size: 9.5pt; color: #444; letter-spacing: .02em; }
 .p-meta { font-size: 10pt; color: #333; margin-bottom: .2cm; }
 .p-name { display: flex; gap: .8cm; margin: .55cm 0 .35cm; }
-.p-name span { flex: 1; border-bottom: 1px solid #000; padding-bottom: 2px; font-size: 10pt; min-height: .6cm; }
+.p-name span { text-align: left; flex: 1; border-bottom: 1px solid #000; padding-bottom: 2px; font-size: 10pt; min-height: .6cm; }
 .p-name span:first-child { flex: 2.2; }
 .p-hints { font-size: 10pt; border-left: 3px solid #999; padding: .1cm .3cm; margin: .3cm 0; color: #222; }
-.p-total { text-align: right; font-size: 10pt; margin-bottom: .4cm; padding-bottom: .25cm; border-bottom: 2px solid #000; }
+.p-total { text-align: right; font-size: 10pt; margin-bottom: .4cm; padding-bottom: .25cm; border-bottom: 2px solid var(--acc, #000); }
+.p-rule { border-bottom: 2px solid var(--acc, #000); margin: .2cm 0 .45cm; }
 
 .q { break-inside: avoid; page-break-inside: avoid; margin: 0 0 .65cm; }
 .q-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; margin-bottom: .1cm; }
-.q-num { font-size: 12pt; }
+.q-num { font-size: 12pt; color: var(--acc, #000); }
 .q-pts { font-weight: 400; font-size: 10pt; white-space: nowrap; color: #333; }
 .q-text { margin-bottom: .15cm; }
 .q-img { display: block; max-width: 100%; margin: .2cm 0; }
@@ -44,7 +45,7 @@ pre.code code { background: none; padding: 0; }
   .sol { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-.blk { break-inside: avoid; page-break-inside: avoid; margin: 0 0 .55cm; }
+.blk { margin: 0 0 .55cm; }
 .blk-heading .q-text { font-weight: 700; font-size: 13pt; }
 .blk-box { border: 1px solid #888; background: #f6f6f6; padding: .2cm .3cm; border-radius: 3px; }
 .blk-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -52,3 +53,42 @@ u { text-decoration: underline; }
 img.inl { vertical-align: middle; max-width: 100%; }
 .fig { margin: .1cm 0; }
 .fig .q-img { margin: 0; }
+
+/* ---------- Layout-Sprache: Absätze, Listen, Überschriften ---------- */
+.pp { margin: 0; }
+.vsp { display: block; }
+.hd { font-weight: 700; margin: .25cm 0 .1cm; line-height: 1.25; break-after: avoid; page-break-after: avoid; }
+.hd1 { font-size: 1.3em; color: var(--acc, #000); }
+.hd2 { font-size: 1.15em; }
+.hd3 { font-size: 1em; text-decoration: underline; }
+.li { display: flex; gap: .2cm; margin: .04cm 0; }
+.li .m { flex: 0 0 auto; min-width: .5cm; }
+.li .t { flex: 1; min-width: 0; }
+hr.rule { border: 0; border-top: 1px solid #777; margin: .25cm 0; }
+.hl { padding: 0 .06cm; border-radius: 2px; }
+.cap { font-size: .85em; color: #444; font-style: italic; margin-top: .05cm; }
+.pgbrk { border-top: 1px dashed #aaa; margin: .35cm 0; height: 0; }
+s { text-decoration: line-through; }
+
+/* ---------- Kästen (Merksatz, Definition, Beispiel, Achtung, Tipp, Info, Rahmen) ---------- */
+.bx { margin: .22cm 0; border: 1px solid var(--bar); border-left: 5px solid var(--bar); background: var(--bg); border-radius: 3px; padding: .14cm .3cm .16cm; break-inside: avoid; page-break-inside: avoid; }
+.bx-t { font-weight: 700; color: var(--bar); font-size: .92em; letter-spacing: .02em; text-transform: uppercase; margin-bottom: .06cm; }
+.bx-frame { border: 1.5px solid #222; border-left-width: 1.5px; background: #fff; border-radius: 2px; }
+.bx-frame .bx-t { color: #000; text-transform: none; }
+
+/* ---------- Tabellen ---------- */
+table.tab { width: 100%; border-collapse: collapse; margin: .2cm 0; font-size: .97em; }
+table.tab th, table.tab td { border: 1px solid #333; padding: .1cm .2cm; vertical-align: top; text-align: left; height: .85cm; }
+table.tab th { background: #e8edf4; font-weight: 700; }
+table.tab tr { break-inside: avoid; page-break-inside: avoid; }
+.bx table.tab { background: #fff; }
+
+.paper, .paper * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print {
+  .pgbrk { border: 0; margin: 0; height: 0; break-after: page; page-break-after: always; }
+}
+
+.ans { display: block; margin: .15cm 0; }
+.blankarea { margin: .1cm 0; }
+.endm { margin-top: .5cm; }
+.endm .bx { break-inside: avoid; }
