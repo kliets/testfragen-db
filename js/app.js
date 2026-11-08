@@ -154,7 +154,7 @@
       ${afbs.length ? `<span class="tag">AFB ${afbs.map(a => R.AFB[a]).join('/')}</span>` : ''}
       <span class="tag">${R.fmt(R.qPoints(q))} BE</span>${compact ? '' : `<span class="tag">${R.TYPES[q.type] || ''}</span>`}</div>`;
     const head = q.topic ? `<div class="meta"><b>${esc(q.topic)}</b></div>` : '';
-    const snip = `<div class="snip">${R.md(q.text || '(kein Text)')}</div>`;
+    const snip = `<div class="snip">${R.md(q.text || '(kein Text)', { flat: true })}</div>`;
     if (compact) {
       return `<article class="card compact" draggable="true" data-qid="${q.id}">${tags}${head}${snip}
         <div class="btns"><button class="btn sm" data-a="s-add" data-id="${q.id}">+ In Prüfung</button></div></article>`;
@@ -180,7 +180,29 @@
     const isBlock = d.type === 'block';
     const root = $('#modal-root');
     const SYMS = ['°', '²', '³', '½', '±', '·', '×', '÷', '→', '⇒', '≤', '≥', '≠', '≈', '√', '∞', 'π', 'Δ', 'α', 'β', 'γ', 'λ', 'μ', 'ρ', 'σ', 'φ', 'θ', 'ω', 'Ω', '€'];
-    const tb = (gap = true) => `<div class="tb"><button type="button" data-m="fmt" data-k="b" title="Fett"><b>F</b></button><button type="button" data-m="fmt" data-k="i" title="Kursiv"><i>K</i></button><button type="button" data-m="fmt" data-k="u" title="Unterstrichen"><u>U</u></button><button type="button" data-m="fmt" data-k="l" title="Aufzählung (Zeilen mit „- “ beginnen)">• Liste</button><button type="button" data-m="fmt" data-k="f" title="Formel (LaTeX) einfügen">∑ Formel</button>${gap ? '<button type="button" data-m="fmt" data-k="g" title="Lücke im Text">▁ Lücke</button>' : ''}<button type="button" data-m="fmt" data-k="c" title="Code" style="font-family:monospace">&lt;/&gt;</button><select class="sym" data-sym title="Sonderzeichen einfügen"><option value="">Zeichen …</option>${SYMS.map(x => `<option>${x}</option>`).join('')}</select></div>`;
+    const COL_BTNS = Object.entries(R.COLORS).map(([k, v]) => `<button type="button" data-m="color" data-v="${k}" title="${R.COLOR_LABEL[k]}" style="background:${v}"></button>`).join('');
+    const MARK_BTNS = Object.entries(R.MARKS).map(([k, v]) => `<button type="button" data-m="mark" data-v="${k}" title="${R.MARK_LABEL[k]}" style="background:${v}"></button>`).join('');
+    const tb = (gap = true) => `<div class="tbw"><div class="tb">
+      <span class="tbg"><button type="button" data-m="fmt" data-k="b" title="Fett (Strg/Cmd + B)"><b>F</b></button><button type="button" data-m="fmt" data-k="i" title="Kursiv (Strg/Cmd + I)"><i>K</i></button><button type="button" data-m="fmt" data-k="u" title="Unterstrichen (Strg/Cmd + U)"><u>U</u></button><button type="button" data-m="fmt" data-k="st" title="Durchgestrichen"><s>S</s></button><button type="button" data-m="fmt" data-k="hoch" title="Hochgestellt">x<sup>2</sup></button><button type="button" data-m="fmt" data-k="tief" title="Tiefgestellt">x<sub>2</sub></button></span>
+      <span class="tbg"><button type="button" data-m="pop" data-k="color" title="Schriftfarbe"><span class="ico-a">A</span></button><button type="button" data-m="pop" data-k="mark" title="Textmarker (Hintergrundfarbe)"><span class="ico-mark">ab</span></button><select data-size title="Schriftgröße der Auswahl"><option value="">Größe …</option><option value="klein">klein</option><option value="gross">groß</option><option value="riesig">sehr groß</option><option value="-">Normal</option></select></span>
+      <span class="tbg"><button type="button" data-m="fmt" data-k="l" title="Aufzählung">• Liste</button><button type="button" data-m="fmt" data-k="n" title="Nummerierte Liste">1. Liste</button><select data-head title="Überschrift für die markierten Zeilen"><option value="">Absatz …</option><option value="1">Überschrift 1</option><option value="2">Überschrift 2</option><option value="3">Überschrift 3</option><option value="0">Normaler Text</option></select><select data-align title="Ausrichtung der markierten Zeilen"><option value="">Ausrichtung …</option><option value="left">linksbündig</option><option value="center">zentriert</option><option value="right">rechtsbündig</option><option value="justify">Blocksatz</option></select></span>
+      <span class="tbg"><button type="button" data-m="fmt" data-k="f" title="Formel (LaTeX) einfügen">∑ Formel</button>${gap ? '<button type="button" data-m="fmt" data-k="g" title="Lücke im Text">▁ Lücke</button>' : ''}<button type="button" data-m="fmt" data-k="c" title="Code" style="font-family:monospace">&lt;/&gt;</button><button type="button" data-m="pop" data-k="table" title="Tabelle einfügen oder bearbeiten">▦ Tabelle</button><select data-box title="Markierte Zeilen in einen Kasten setzen"><option value="">Kasten …</option><option value="merke">Merksatz</option><option value="definition">Definition</option><option value="beispiel">Beispiel</option><option value="achtung">Achtung</option><option value="tipp">Tipp</option><option value="info">Info</option><option value="rahmen">Einfacher Rahmen</option></select></span>
+      <span class="tbg"><button type="button" data-m="fmt" data-k="hr" title="Trennlinie">― Linie</button><button type="button" data-m="fmt" data-k="pb" title="Neue Seite beginnen">⤓ Seitenumbruch</button><select class="sym" data-sym title="Sonderzeichen einfügen"><option value="">Zeichen …</option>${SYMS.map(x => `<option>${x}</option>`).join('')}</select></span>
+    </div><div class="pop" hidden></div></div>`;
+    const CHEAT = `<details class="cheat"><summary>Schreibweise &amp; Layout-Hilfe</summary><table>
+      <tr><td>**fett**  *kursiv*  __unterstrichen__  ~~durchgestrichen~~</td><td>Textformat (oder Knöpfe / Strg+B, I, U)</td></tr>
+      <tr><td>{c:rot|farbiger Text}  {c:#1f4fd8|…}</td><td>Schriftfarbe (rot, blau, grün, orange, lila, grau, braun oder #Hex)</td></tr>
+      <tr><td>{bg:gelb|markiert}</td><td>Textmarker (gelb, grün, blau, rosa, orange, grau)</td></tr>
+      <tr><td>{s:groß|…}  {s:klein|…}  {s:riesig|…}</td><td>Schriftgröße;  {s:hoch|2} / {s:tief|2} hoch-/tiefgestellt</td></tr>
+      <tr><td># Überschrift\n## Unterüberschrift</td><td>Überschriften (bis ###)</td></tr>
+      <tr><td>- Punkt\n  - Unterpunkt\n1. Erstens</td><td>Listen (Unterpunkte 2 Leerzeichen eingerückt)</td></tr>
+      <tr><td>| Größe | Einheit |\n|---|:---:|\n| Länge | m |</td><td>Tabelle; Zeile mit --- macht die erste Zeile zur Kopfzeile, Doppelpunkte steuern die Ausrichtung (:--- links, :---: mitte, ---: rechts). Leere Zellen = Platz zum Ausfüllen</td></tr>
+      <tr><td>:::merke Satz des Pythagoras\n$a^2+b^2=c^2$\n:::</td><td>Kasten: merke, definition, beispiel, achtung, tipp, info, rahmen. Titel optional (ein Minuszeichen statt Titel = ohne Titel)</td></tr>
+      <tr><td>:::mitte\nZentrierter Text\n:::</td><td>Ausrichtung: mitte, rechts, links, blocksatz</td></tr>
+      <tr><td>---    :::seite</td><td>Trennlinie / neue Seite</td></tr>
+      <tr><td>$x^2$   $$\\frac{a}{b}$$   [[Lücke]]</td><td>Formel im Text / eigene Zeile / Lückentext</td></tr>
+      <tr><td>Leerzeile = Absatzabstand, mehrere Leerzeilen = mehr Platz</td><td>Mit \\* oder \\{ kannst du Sonderzeichen wörtlich schreiben</td></tr>
+    </table></details>`;
 
     const afbSel = (path, val) => `<select data-path="${path}" data-num>${[1, 2, 3].map(a => `<option value="${a}" ${+val === a ? 'selected' : ''}>${AFBL[a]}</option>`).join('')}</select>`;
     const hint = () => isBlock ? 'Für Material, Überschriften oder Hinweise zwischen den Aufgaben. Wird nicht nummeriert und zählt nicht zu den Punkten.' : ({
@@ -188,7 +210,7 @@
       mc: 'Formeln: <code>$x^2$</code> inline, <code>$$\\frac{a}{b}$$</code> als eigene Zeile. Code: <code>`x = 1`</code>',
       wf: 'Der Aufgabentext ist die Aussage, die als wahr oder falsch bewertet wird.',
       teil: 'Gemeinsamer Einleitungstext; die Teilaufgaben a), b), … legst du darunter an.',
-      frei: 'Formeln: <code>$x^2$</code> inline, <code>$$\\frac{a}{b}$$</code> als eigene Zeile. Code: <code>```…```</code>'
+      frei: 'Formeln: <code>$x^2$</code> inline, <code>$$\\frac{a}{b}$$</code> als eigene Zeile. Farben, Tabellen und Kästen findest du in der Werkzeugleiste.'
     })[d.type];
 
     const ensure = () => {
@@ -196,11 +218,13 @@
       if (d.type === 'teil' && (!d.parts || !d.parts.length)) d.parts = [{ text: '', points: 2, afb: d.afb || 1, solution: '' }];
     };
 
+    const answerHtml = suffix => { const k = R.answerKind(d); return `<div class="row"><label class="f">Antwortplatz ${suffix}<select data-path="answer">${Object.entries(R.ANSWERS).map(([v, t]) => `<option value="${v}" ${k === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        ${k === 'lines' ? `<label class="f">Zeilen <small>(0 = kein Platz)</small><input type="number" min="0" step="1" data-num data-path="lines" value="${d.lines || 0}"></label>` : `<label class="f">Höhe in cm<input type="number" min="2" max="24" step="1" data-num data-path="ah" value="${R.answerH(d)}"></label>`}</div>`; };
     const dynHtml = () => {
       let h = '';
-      if (isBlock) return `<label class="f">Darstellung<select data-path="style">${[['text', 'Normaler Text'], ['heading', 'Überschrift (fett)'], ['box', 'Hinweis-Kasten']].map(([k, v]) => `<option value="${k}" ${d.style === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
+      if (isBlock) return `<label class="f">Darstellung<select data-path="style">${[['text', 'Normaler Text'], ['heading', 'Überschrift (fett)'], ['box', 'Grauer Kasten (einfach)']].map(([k, v]) => `<option value="${k}" ${d.style === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
       if (d.type === 'teil') {
-        h += `<label class="f">Antwortzeilen je Teilaufgabe <small>(freier Platz im Druck)</small><input type="number" min="0" step="1" data-num data-path="lines" value="${d.lines || 0}"></label>`;
+        h += answerHtml('je Teilaufgabe');
         h += d.parts.map((p, i) => `<div class="sub"><div class="row" style="align-items:center"><b>Teilaufgabe ${String.fromCharCode(97 + i)})</b>
           <button type="button" class="btn sm danger" data-m="part-del" data-i="${i}" ${d.parts.length < 2 ? 'disabled' : ''} style="justify-self:end">Entfernen</button></div>
           ${tb()}<textarea data-path="parts.${i}.text" placeholder="Aufgabentext der Teilaufgabe">${esc(p.text)}</textarea>
@@ -223,7 +247,7 @@
         h += `<div class="sub"><b>Richtige Antwort</b><div class="row"><label><input type="radio" name="wahr" data-path="wahr" value="1" ${d.wahr ? 'checked' : ''}> wahr</label><label><input type="radio" name="wahr" data-path="wahr" value="0" ${!d.wahr ? 'checked' : ''}> falsch</label></div></div>`;
       }
       if (d.type === 'frei') {
-        h += `<label class="f">Antwortzeilen <small>(freier Platz im Druck, 0 = keiner)</small><input type="number" min="0" step="1" data-num data-path="lines" value="${d.lines || 0}"></label>`;
+        h += answerHtml('');
       }
       h += `<label class="f">${d.type === 'luecke' ? 'Hinweis zur Lösung (optional)' : 'Lösung / Erwartungshorizont'}${tb(false)}<textarea data-path="solution">${esc(d.solution)}</textarea></label>`;
       return h;
@@ -233,7 +257,9 @@
       ${d.images.map((im, i) => im.inline || im.placed ? `<div class="imgrow"><img src="${esc(im.src)}" alt="" style="max-height:40px">
         <div class="meta">${im.inline ? 'Formel/Grafik im Text (Bildausschnitt aus dem Import)' : 'Bild im Text'} – Platzhalter <code>{img:${esc(im.id)}}</code>: im Text an die gewünschte Stelle verschieben.</div>
         <div class="btns">${im.inline ? '' : `<select data-path="images.${i}.w" data-num title="Breite">${[...new Set([20, 30, 40, 50, 60, 80, 100, +im.w])].sort((a, b) => a - b).map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select>`}<button type="button" class="btn sm danger" data-m="img-del" data-i="${i}">Entfernen</button></div></div>` : `<div class="imgrow"><img src="${esc(im.src)}" alt="">
-        <label class="f">Breite im Dokument<select data-path="images.${i}.w" data-num>${[...new Set([20, 30, 40, 50, 60, 80, 100, +im.w])].sort((a, b) => a - b).map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
+        <div class="opts"><label class="f">Breite<select data-path="images.${i}.w" data-num>${[...new Set([20, 30, 40, 50, 60, 80, 100, +im.w])].sort((a, b) => a - b).map(w => `<option value="${w}" ${+im.w === w ? 'selected' : ''}>${w} %</option>`).join('')}</select></label>
+        <label class="f">Ausrichtung<select data-path="images.${i}.align">${[['left', 'links'], ['center', 'mittig'], ['right', 'rechts']].map(([k, t]) => `<option value="${k}" ${(im.align || 'left') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label class="f wide">Bildunterschrift <small>(optional)</small><input type="text" data-path="images.${i}.cap" value="${esc(im.cap || '')}" placeholder="z. B. Abb. 1: Versuchsaufbau"></label></div>
         <div class="btns"><button type="button" class="btn sm" data-m="img-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} title="Nach vorn">↑</button><button type="button" class="btn sm" data-m="img-down" data-i="${i}" ${i === d.images.length - 1 ? 'disabled' : ''} title="Nach hinten">↓</button><button type="button" class="btn sm danger" data-m="img-del" data-i="${i}">Entfernen</button></div></div>`).join('')}
       <input type="file" id="imgfile" accept="image/*" multiple><small class="meta">Tipp: Bilder aus der Zwischenablage mit Strg+V (Mac: Cmd+V) im Fenster einfügen. Die Bilder erscheinen unter dem Aufgabentext.</small></div>`;
 
@@ -252,6 +278,7 @@
           </div>`}
           <datalist id="topiclist">${topics().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           <label class="f">${isBlock ? 'Text' : 'Aufgabentext'}${tb(!isBlock)}<textarea data-path="text" rows="5">${esc(d.text)}</textarea><small id="hint">${hint()}</small></label>
+          ${CHEAT}
           <div id="dyn" class="form">${dynHtml()}</div>
           ${imgHtml()}
           ${isBlock ? '' : `<label class="f">Schlagwörter <small>(durch Komma getrennt)</small><input type="text" data-path="tagsText" value="${esc((d.tags || []).join(', '))}"></label>`}
@@ -272,26 +299,154 @@
       if (p === 'tagsText') { d.tags = t.value.split(',').map(x => x.trim()).filter(Boolean); return; }
       const v = t.type === 'checkbox' ? t.checked : t.type === 'radio' ? t.value === '1' : t.dataset.num !== undefined ? R.num(t.value) : t.value;
       setPath(d, p, v);
-      if (p === 'type' && e.type === 'change') { ensure(); redyn(); return; }
+      if ((p === 'type' || p === 'answer') && e.type === 'change') { ensure(); redyn(); return; }
       preview();
     };
+    form.addEventListener('keydown', e => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.target.tagName !== 'TEXTAREA' || !e.target.previousElementSibling || !e.target.previousElementSibling.classList.contains('tbw')) return;
+      const k = { b: 'b', i: 'i', u: 'u' }[e.key.toLowerCase()]; if (k) { e.preventDefault(); fmtText(e.target, k); }
+    });
     form.addEventListener('input', onInput);
     form.addEventListener('change', onInput);
     $('#prevsol').addEventListener('change', preview);
 
     const close = () => { root.innerHTML = ''; root.onclick = null; root.onchange = null; root.onmousedown = null; root.onpaste = null; };
-    root.onmousedown = e => { if (e.target.closest('.tb button')) e.preventDefault(); };
+    root.onmousedown = e => { if (e.target.closest('.tbw button')) e.preventDefault(); };
     const fire = ta => ta.dispatchEvent(new Event('input', { bubbles: true }));
-    const fmtText = (ta, k) => {
-      const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
-      if (k === 'l') {
-        const st = v.lastIndexOf('\n', a - 1) + 1, seg = v.slice(st, b).split('\n').map(l => /^- /.test(l) ? l : '- ' + l).join('\n');
-        ta.value = v.slice(0, st) + seg + v.slice(b); ta.setSelectionRange(st, st + seg.length); ta.focus(); fire(ta); return;
+    const setSel = (ta, a, b) => { ta.setSelectionRange(a, b); ta.focus(); };
+    const lineRange = ta => { const v = ta.value, a = ta.selectionStart, b = ta.selectionEnd; const st = v.lastIndexOf('\n', a - 1) + 1; let en = v.indexOf('\n', b > a ? b - 1 : b); if (en < 0) en = v.length; return [st, en]; };
+    const replLines = (ta, fn) => {
+      const [st, en] = lineRange(ta), seg = ta.value.slice(st, en).split('\n'), out = fn(seg);
+      ta.value = ta.value.slice(0, st) + out.join('\n') + ta.value.slice(en);
+      setSel(ta, st, st + out.join('\n').length); fire(ta);
+    };
+    const insertBlock = (ta, txt, s0, s1) => {
+      const v = ta.value, a = ta.selectionStart, b = ta.selectionEnd;
+      const pre = a > 0 && v[a - 1] !== '\n' ? '\n' : '', post = b < v.length && v[b] !== '\n' ? '\n' : '';
+      ta.value = v.slice(0, a) + pre + txt + post + v.slice(b);
+      const base = a + pre.length; setSel(ta, base + (s0 ?? txt.length), base + (s1 ?? txt.length)); fire(ta);
+    };
+    const wrapSel = (ta, open, close, ph) => {
+      const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value, sel = v.slice(a, b);
+      if (sel && sel.length >= open.length + close.length && sel.startsWith(open) && sel.endsWith(close) && !(open === '*' && sel.startsWith('**'))) {
+        const inner = sel.slice(open.length, sel.length - close.length);
+        ta.value = v.slice(0, a) + inner + v.slice(b); setSel(ta, a, a + inner.length); fire(ta); return;
       }
-      const W = { b: ['**', '**', 'fett'], i: ['*', '*', 'kursiv'], u: ['__', '__', 'unterstrichen'], f: ['$', '$', 'x^2'], g: ['[[', ']]', 'Lösung'], c: ['`', '`', 'code'] }[k];
-      const sel = v.slice(a, b) || W[2];
-      ta.value = v.slice(0, a) + W[0] + sel + W[1] + v.slice(b);
-      ta.setSelectionRange(a + W[0].length, a + W[0].length + sel.length); ta.focus(); fire(ta);
+      if (sel && v.slice(a - open.length, a) === open && v.slice(b, b + close.length) === close && !(open === '*' && v[a - 2] === '*')) {
+        ta.value = v.slice(0, a - open.length) + sel + v.slice(b + close.length); setSel(ta, a - open.length, a - open.length + sel.length); fire(ta); return;
+      }
+      const t = sel || ph;
+      ta.value = v.slice(0, a) + open + t + close + v.slice(b);
+      setSel(ta, a + open.length, a + open.length + t.length); fire(ta);
+    };
+    // Farbe/Markierung: bestehende Gruppe gleicher Art ersetzen statt zu verschachteln
+    const setGroup = (ta, kind, val) => {
+      const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value, rx = new RegExp('^\\{' + kind + ':[^|{}\\n]*\\|([\\s\\S]*)\\}$');
+      let sel = v.slice(a, b), A = a, B = b;
+      const m = rx.exec(sel);
+      if (m) sel = m[1];
+      else {
+        const before = v.slice(0, a).match(new RegExp('\\{' + kind + ':[^|{}\\n]*\\|$'));
+        if (before && v[b] === '}') { A = a - before[0].length; B = b + 1; }
+      }
+      const t = sel || 'Text';
+      const rep = val ? '{' + kind + ':' + val + '|' + t + '}' : t;
+      ta.value = v.slice(0, A) + rep + v.slice(B);
+      setSel(ta, A + (val ? ('{' + kind + ':' + val + '|').length : 0), A + (val ? ('{' + kind + ':' + val + '|').length : 0) + t.length); fire(ta);
+    };
+    const setSize = (ta, val) => {
+      const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+      let sel = v.slice(a, b), A = a, B = b;
+      const m = /^\{s:(?:klein|gro(?:ß|ss)|riesig)\|([\s\S]*)\}$/i.exec(sel);
+      if (m) sel = m[1];
+      else { const before = v.slice(0, a).match(/\{s:(?:klein|gro(?:ß|ss)|riesig)\|$/i); if (before && v[b] === '}') { A = a - before[0].length; B = b + 1; } }
+      const t = sel || 'Text', rep = val && val !== '-' ? '{s:' + (val === 'gross' ? 'groß' : val) + '|' + t + '}' : t;
+      ta.value = v.slice(0, A) + rep + v.slice(B);
+      const off = val && val !== '-' ? rep.length - t.length - 1 : 0; setSel(ta, A + off, A + off + t.length); fire(ta);
+    };
+    const boxWrap = (ta, kind) => {
+      const [st, en] = lineRange(ta), seg = ta.value.slice(st, en);
+      const sel = seg.trim() ? seg : 'Text hier eingeben';
+      const txt = ':::' + kind + '\n' + sel + '\n:::';
+      ta.value = ta.value.slice(0, st) + txt + ta.value.slice(en);
+      const s0 = st + kind.length + 4; setSel(ta, s0, s0 + sel.length); fire(ta);
+    };
+    const alignWrap = (ta, al) => {
+      const kind = { center: 'mitte', right: 'rechts', justify: 'blocksatz', left: 'links' }[al];
+      const [st, en] = lineRange(ta), v = ta.value, lines = v.split('\n');
+      const li = v.slice(0, st).split('\n').length - 1, le = li + v.slice(st, en).split('\n').length - 1;
+      const prev = lines[li - 1], next = lines[le + 1];
+      if (prev !== undefined && /^\s*:::\s*(mitte|zentriert|rechts|links|blocksatz)\s*$/.test(prev) && next !== undefined && /^\s*:::\s*$/.test(next)) {
+        lines.splice(le + 1, 1); lines.splice(li - 1, 1);
+      } else if (al === 'left') return;
+      if (al !== 'left') {
+        const base = lines.slice();
+        const hadWrap = prev !== undefined && /^\s*:::\s*(mitte|zentriert|rechts|links|blocksatz)\s*$/.test(prev) && next !== undefined && /^\s*:::\s*$/.test(next);
+        const i0 = hadWrap ? li - 1 : li, i1 = hadWrap ? le - 1 : le;
+        base.splice(i1 + 1, 0, ':::'); base.splice(i0, 0, ':::' + kind);
+        ta.value = base.join('\n'); setSel(ta, ta.value.split('\n').slice(0, i0 + 1).join('\n').length + 1, ta.value.split('\n').slice(0, i1 + 2).join('\n').length); fire(ta); return;
+      }
+      ta.value = lines.join('\n'); setSel(ta, st, st); fire(ta);
+    };
+    // Tabellen
+    const tableAt = ta => {
+      const v = ta.value, pos = ta.selectionStart, ls = v.split('\n'); let off = 0, idx = -1;
+      for (let k = 0; k < ls.length; k++) { if (pos <= off + ls[k].length) { idx = k; break; } off += ls[k].length + 1; }
+      if (idx < 0 || !/^\s*\|/.test(ls[idx])) return null;
+      let a = idx, b = idx; while (a > 0 && /^\s*\|/.test(ls[a - 1])) a--; while (b < ls.length - 1 && /^\s*\|/.test(ls[b + 1])) b++;
+      return { ls, a, b, idx };
+    };
+    const tableMd = (rows, cols, head) => {
+      const w = 12, cell = t => ' ' + t.padEnd(w - 1);
+      const line = arr => '|' + arr.map(cell).join('|') + '|';
+      const out = [];
+      if (head) { out.push(line(Array.from({ length: cols }, (_, k) => 'Spalte ' + (k + 1)))); out.push('|' + Array.from({ length: cols }, () => '-'.repeat(w)).join('|') + '|'); }
+      for (let r = 0; r < rows; r++) out.push(line(Array.from({ length: cols }, () => '')));
+      return out.join('\n');
+    };
+    const tableOp = (ta, op) => {
+      const T = tableAt(ta); if (!T) { toast('Setze den Cursor zuerst in eine Tabelle.'); return; }
+      let { ls, a, b, idx } = T; const isSep = l => R.isSepRow(R.splitCells(l));
+      const fix = l => { l = l.replace(/\s+$/, ''); return /\|$/.test(l) ? l : l + ' |'; };
+      if (op === 'row+') { const nc = R.splitCells(ls[a]).length; const nl = '|' + Array.from({ length: nc }, () => '            ').join('|') + '|'; ls.splice(idx + 1, 0, nl); }
+      else if (op === 'row-') { if (b - a < 1 || isSep(ls[idx]) || (idx === a && a + 1 <= b && isSep(ls[a + 1]))) { toast('Diese Zeile kann nicht entfernt werden.'); return; } ls.splice(idx, 1); }
+      else if (op === 'col+') { for (let k = a; k <= b; k++) ls[k] = fix(ls[k]) + (isSep(ls[k]) ? '------------|' : '            |'); }
+      else if (op === 'col-') { if (R.splitCells(ls[a]).length < 2) return; for (let k = a; k <= b; k++) ls[k] = fix(ls[k]).replace(/\|[^|]*\|$/, '|'); }
+      const tgt = op === 'row+' ? idx + 1 : Math.min(idx, ls.length - 1);
+      ta.value = ls.join('\n');
+      const off = ls.slice(0, tgt).join('\n').length + (tgt ? 1 : 0) + 1;
+      setSel(ta, off, off); fire(ta);
+    };
+    const fmtText = (ta, k) => {
+      const v = ta.value;
+      switch (k) {
+        case 'l': return replLines(ta, seg => { const all = seg.every(l => /^\s*- /.test(l) || !l.trim()); return seg.map(l => !l.trim() ? l : all ? l.replace(/^(\s*)- /, '$1') : (/^\s*- /.test(l) ? l : '- ' + l.replace(/^\s*\d{1,2}[.)]\s+/, ''))); });
+        case 'n': return replLines(ta, seg => { const all = seg.every(l => /^\s*\d{1,2}[.)] /.test(l) || !l.trim()); let c = 0; return seg.map(l => !l.trim() ? l : all ? l.replace(/^(\s*)\d{1,2}[.)] /, '$1') : (++c + '. ' + l.replace(/^\s*(?:- |\d{1,2}[.)]\s+)/, ''))); });
+        case 'hr': ta.setSelectionRange(ta.selectionEnd, ta.selectionEnd); return insertBlock(ta, '---');
+        case 'pb': ta.setSelectionRange(ta.selectionEnd, ta.selectionEnd); return insertBlock(ta, ':::seite');
+        case 'b': return wrapSel(ta, '**', '**', 'fett');
+        case 'i': return wrapSel(ta, '*', '*', 'kursiv');
+        case 'u': return wrapSel(ta, '__', '__', 'unterstrichen');
+        case 'st': return wrapSel(ta, '~~', '~~', 'durchgestrichen');
+        case 'hoch': return wrapSel(ta, '{s:hoch|', '}', '2');
+        case 'tief': return wrapSel(ta, '{s:tief|', '}', '2');
+        case 'f': return wrapSel(ta, '$', '$', 'x^2');
+        case 'g': return wrapSel(ta, '[[', ']]', 'Lösung');
+        case 'c': return wrapSel(ta, '`', '`', 'code');
+      }
+    };
+    const popHtml = (kind, ta) => {
+      if (kind === 'color') return `<div class="sw"><b style="font-size:12.5px">Schriftfarbe</b>${COL_BTNS}<input type="color" data-colorpick value="#c00000" title="Eigene Farbe wählen"><button type="button" class="txt" data-m="color" data-v="">Farbe entfernen</button></div><small>Erst Text markieren, dann Farbe wählen. Gilt auch im PDF- und ODT-Export.</small>`;
+      if (kind === 'mark') return `<div class="sw"><b style="font-size:12.5px">Textmarker</b>${MARK_BTNS}<input type="color" data-markpick value="#fff176" title="Eigene Farbe wählen"><button type="button" class="txt" data-m="mark" data-v="">Markierung entfernen</button></div>`;
+      const inT = !!tableAt(ta);
+      return `<div class="tr"><label>Zeilen<input type="number" min="1" max="30" value="3" data-t="rows"></label><label>Spalten<input type="number" min="1" max="8" value="3" data-t="cols"></label><label class="ck"><input type="checkbox" data-t="head" checked> mit Kopfzeile</label><button type="button" class="btn sm primary" data-m="tbl-ins">Tabelle einfügen</button></div>
+        <div class="tr"><span style="font-size:12.5px;color:var(--muted)">${inT ? 'Cursor steht in einer Tabelle:' : 'Tabelle bearbeiten (Cursor in die Tabelle setzen):'}</span><button type="button" class="btn sm" data-m="tbl-op" data-op="row+" ${inT ? '' : 'disabled'}>+ Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="row-" ${inT ? '' : 'disabled'}>− Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col+" ${inT ? '' : 'disabled'}>+ Spalte</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col-" ${inT ? '' : 'disabled'}>− Spalte</button></div>
+        <small>Leere Zellen bleiben als Schreibfeld für die Lernenden. Spaltenausrichtung: in der Trennzeile <code>:---</code> links, <code>:---:</code> mittig, <code>---:</code> rechts.</small>`;
+    };
+    const togglePop = (b, kind) => {
+      const w = b.closest('.tbw'), pop = w.querySelector('.pop'), ta = w.nextElementSibling;
+      if (!pop.hidden && pop.dataset.kind === kind) { pop.hidden = true; return; }
+      pop.dataset.kind = kind; pop.innerHTML = popHtml(kind, ta); pop.hidden = false;
     };
     const addImages = async files => {
       for (const f of files) { if (!/^image\//.test(f.type)) continue; try { d.images.push({ src: await fileToDataUrl(f), w: 60 }); } catch (err) { toast('Bild konnte nicht geladen werden.'); } }
@@ -307,7 +462,15 @@
         case 'opt-del': d.options.splice(i, 1); redyn(); break;
         case 'part-add': d.parts.push({ text: '', points: 2, afb: d.afb || 1, solution: '' }); redyn(); break;
         case 'part-del': d.parts.splice(i, 1); redyn(); break;
-        case 'fmt': { const ta = b.closest('.tb').nextElementSibling; if (ta) fmtText(ta, b.dataset.k); break; }
+        case 'fmt': { const ta = b.closest('.tbw').nextElementSibling; if (ta) fmtText(ta, b.dataset.k); break; }
+        case 'pop': togglePop(b, b.dataset.k); break;
+        case 'color': case 'mark': { const ta = b.closest('.tbw').nextElementSibling; setGroup(ta, b.dataset.m === 'color' ? 'c' : 'bg', b.dataset.v); b.closest('.pop').hidden = true; break; }
+        case 'tbl-ins': {
+          const pop = b.closest('.pop'), ta = b.closest('.tbw').nextElementSibling, g = k => pop.querySelector('[data-t=' + k + ']');
+          const rows = Math.max(1, Math.min(30, +g('rows').value || 3)), cols = Math.max(1, Math.min(8, +g('cols').value || 3));
+          insertBlock(ta, tableMd(rows, cols, g('head').checked)); pop.hidden = true; break;
+        }
+        case 'tbl-op': { const ta = b.closest('.tbw').nextElementSibling; tableOp(ta, b.dataset.op); const pop = b.closest('.pop'); pop.innerHTML = popHtml('table', ta); break; }
         case 'img-del': {
           const im = d.images[i];
           if (im && (im.inline || im.placed)) { const tok = new RegExp('\\s?\\{img:' + im.id + '\\}', 'g'); d.text = d.text.replace(tok, ''); d.solution = (d.solution || '').replace(tok, ''); (d.options || []).forEach(o => o.t = o.t.replace(tok, '')); (d.parts || []).forEach(p => { p.text = p.text.replace(tok, ''); p.solution = (p.solution || '').replace(tok, ''); }); $$('#qform textarea, #qform input[type=text]').forEach(el => { if (el.dataset.path) { const v = el.dataset.path.split('.').reduce((o, k) => o && o[k], d); if (typeof v === 'string') el.value = v; } }); }
@@ -323,8 +486,18 @@
       }
     };
     root.onchange = async e => {
+      const tgt = e.target;
+      if (tgt.matches && tgt.matches('[data-colorpick],[data-markpick]')) { const ta = tgt.closest('.tbw').nextElementSibling; setGroup(ta, tgt.matches('[data-colorpick]') ? 'c' : 'bg', tgt.value); tgt.closest('.pop').hidden = true; return; }
+      if (tgt.matches && tgt.matches('[data-size],[data-head],[data-align],[data-box]')) {
+        const ta = tgt.closest('.tbw').nextElementSibling, v = tgt.value; tgt.value = ''; if (!v && v !== '0') return;
+        if (tgt.matches('[data-size]')) setSize(ta, v);
+        else if (tgt.matches('[data-head]')) { const lv = +v; replLines(ta, seg => seg.map(l => !l.trim() ? l : (lv ? '#'.repeat(lv) + ' ' : '') + l.replace(/^\s*#{1,3}\s+/, ''))); }
+        else if (tgt.matches('[data-align]')) alignWrap(ta, v);
+        else boxWrap(ta, v);
+        return;
+      }
       if (e.target.matches && e.target.matches('[data-sym]')) {
-        const ta = e.target.closest('.tb').nextElementSibling, v = e.target.value; e.target.value = '';
+        const ta = e.target.closest('.tbw').nextElementSibling, v = e.target.value; e.target.value = '';
         if (ta && v) { const a = ta.selectionStart; ta.value = ta.value.slice(0, a) + v + ta.value.slice(ta.selectionEnd); ta.setSelectionRange(a + v.length, a + v.length); ta.focus(); fire(ta); }
         return;
       }
@@ -374,7 +547,7 @@
         return `<article class="card"><div class="tags"><span class="tag ${e.subject}">${esc(e.subject)}</span>${e.grade ? `<span class="tag">${esc(R.gradeLabel(e.grade))}</span>` : ''}<span class="tag">${(e.items || []).filter(i => i.type !== 'block').length} Aufgaben</span><span class="tag">${R.fmt(total)} BE</span></div>
         <b style="font-size:17px">${esc(e.title)}</b><div class="meta">${e.updatedBy ? esc(e.updatedBy) + ' · ' : ''}${e._u ? new Date(e._u).toLocaleDateString('de-DE') : ''}</div>
         <div class="btns"><a class="btn sm primary" style="text-decoration:none" href="#/pruefung/${e.id}">Öffnen</a>
-        <button class="btn sm" data-a="e-dup" data-id="${e.id}">Duplizieren</button><button class="btn sm danger" data-a="e-del" data-id="${e.id}">Löschen</button></div></article>`;
+        <button class="btn sm" data-a="e-dup" data-id="${e.id}">Duplizieren</button><button class="btn sm" data-a="e-dupb" data-id="${e.id}" title="Kopie mit gemischter Aufgabenreihenfolge und gemischten Antworten (gegen Abschreiben)">Gruppe B</button><button class="btn sm danger" data-a="e-del" data-id="${e.id}">Löschen</button></div></article>`;
       }).join('') : '<div class="empty" style="grid-column:1/-1">Noch keine Prüfungen. Lege die erste an und ziehe Aufgaben aus der Aufgabenbank hinein.</div>'}</div>`);
   }
 
@@ -613,8 +786,9 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
       <p><b>Aufgabenbank:</b> Hier liegen alle Aufgaben, sortierbar nach Fach, Klassenstufe, Thema und Anforderungsbereich.<br>
       <b>Prüfungen:</b> Aufgaben aus der Bank werden als Kopie in die Prüfung gezogen. Änderungen dort wirken nur in dieser Prüfung. Mit „In Bank“ kannst du eine geänderte Aufgabe zusätzlich als neue Bankaufgabe sichern.<br>
       <b>Export:</b> PDF über den Druckdialog des Browsers („Als PDF speichern“), ODT zum Weiterbearbeiten in LibreOffice oder Word – jeweils mit oder ohne Lösungen.</p>
-      <h2>Schreibweise</h2>
-      <p>Formeln: <code>$x^2 + 1$</code> im Text, <code>$$\\frac{a}{b}$$</code> als eigene Zeile. Fett: <code>**Text**</code>, kursiv: <code>*Text*</code>, Code: <code>\`x = 1\`</code> oder dreifache Backticks für Blöcke. Lückentext: <code>[[Antwort]]</code>.</p>
+      <h2>Schreibweise und Layout</h2>
+      <p>Über jedem Textfeld findest du eine Werkzeugleiste für Fett, Kursiv, Unterstrichen, <b>Schriftfarbe</b>, <b>Textmarker</b>, Größe, Listen, Überschriften, Ausrichtung, <b>Tabellen</b> und <b>Kästen</b> (Merksatz, Definition, Beispiel, Achtung, Tipp, Info, Rahmen). Unter dem Textfeld erklärt „Schreibweise &amp; Layout-Hilfe“ alles auch zum Tippen. Alles erscheint gleich in Vorschau, PDF und ODT.</p>
+      <p>Kurzform: <code>**fett**</code>, <code>*kursiv*</code>, <code>{c:rot|Farbe}</code>, <code>{bg:gelb|Marker}</code>, <code>$x^2$</code> oder <code>$$\\frac{a}{b}$$</code> für Formeln, <code>[[Antwort]]</code> für Lücken, <code>:::merke</code> … <code>:::</code> für einen Kasten, <code>| a | b |</code> für Tabellen.</p>
       <h2>Speicherort</h2>
       <p>${Store.cloud ? 'Die Daten liegen in der gemeinsamen Datenbank (Supabase). Alle Kolleginnen und Kollegen sehen dieselben Aufgaben. Änderungen werden automatisch gespeichert; speichert jemand anderes zeitgleich dieselbe Aufgabe, wirst du gefragt.'
         : 'Aktuell läuft die App im <b>Lokal-Modus</b>: Die Daten bleiben nur in diesem Browser. Für die gemeinsame Nutzung trägst du in <code>js/config.js</code> die Supabase-Zugangsdaten ein (siehe README).'}</p></div>`);
@@ -630,11 +804,22 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
         <div class="row"><label class="f">Schriftart<select id="h-font">${Object.entries(R.FONTS).map(([k, v]) => `<option value="${k}" ${R.fontOf(e) === v ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}</select></label>
         <label class="f">Schriftgröße<select id="h-fsize">${[10, 11, 12, 13, 14].map(n => `<option value="${n}" ${R.fsizeOf(e) === n ? 'selected' : ''}>${n} pt</option>`).join('')}</select></label></div>
         <small class="meta">Gilt für Vorschau, PDF und ODT. Ist die Schrift auf dem Rechner nicht vorhanden, nimmt das Programm automatisch eine ähnliche.</small>
+        <div class="row"><label class="f">Bezeichnung der Aufgaben<input type="text" id="h-label" list="h-labels" value="${esc(e.taskLabel || '')}" placeholder="Aufgabe"><datalist id="h-labels"><option>Aufgabe<option>Übung<option>Station<option>Teil<option>Beispiel</datalist></label>
+        <label class="f">Akzentfarbe (Titel, Aufgabenüberschriften, Linien)<select id="h-acc">${Object.entries(R.ACCENTS).map(([k, v]) => `<option value="${k}" ${(e.accent || 'schwarz') === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label></div>
+        <div class="row"><label class="f">Titel<select id="h-talign"><option value="left" ${e.titleAlign !== 'center' ? 'selected' : ''}>linksbündig</option><option value="center" ${e.titleAlign === 'center' ? 'selected' : ''}>zentriert</option></select></label></div>
+        <div class="f" style="display:grid;gap:5px;font-size:13.5px">
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="h-name" ${e.noName ? '' : 'checked'}> Zeile für Name / Klasse / Datum anzeigen</label>
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="h-total" ${e.noTotal ? '' : 'checked'}> Gesamtpunktzahl anzeigen</label>
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="h-pts" ${e.noPts ? '' : 'checked'}> Punkte (BE) bei den Aufgaben anzeigen</label>
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="h-score" ${e.scoreTable ? 'checked' : ''}> Punkteübersicht (erreichbar / erreicht / Note) am Ende</label>
+          <label class="f" style="margin-top:4px">Notenschlüssel auf dem Lösungsblatt<select id="h-grade"><option value="">keiner</option>${Object.entries(R.GRADES_KEY).map(([k, v]) => `<option value="${k}" ${e.gradeKey === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="h-pnum" ${e.pageNum ? 'checked' : ''}> Seitenzahl unten (ODT sicher; PDF in Chrome/Edge – in Safari über den Druckdialog „Kopf-/Fußzeilen“)</label>
+        </div>
         <label class="f">Hinweise für die Prüflinge <small>(z. B. Hilfsmittel, Bearbeitungshinweise)</small><textarea id="h-hints" rows="4">${esc(e.hints || '')}</textarea></label>
       </div><footer><button class="btn" data-m="cancel" type="button">Abbrechen</button><button class="btn primary" data-m="ok" type="button">Übernehmen</button></footer></div></div>`;
     root.onclick = ev => {
       const b = ev.target.closest('[data-m]'); if (!b) return;
-      if (b.dataset.m === 'ok') { e.school = $('#h-school').value; e.duration = $('#h-dur').value; e.hints = $('#h-hints').value; e.font = $('#h-font').value; e.fsize = +$('#h-fsize').value; touch(); renderPaper(); }
+      if (b.dataset.m === 'ok') { e.school = $('#h-school').value; e.duration = $('#h-dur').value; e.hints = $('#h-hints').value; e.font = $('#h-font').value; e.fsize = +$('#h-fsize').value; e.taskLabel = $('#h-label').value.trim(); e.accent = $('#h-acc').value; e.titleAlign = $('#h-talign').value; e.noName = !$('#h-name').checked; e.noTotal = !$('#h-total').checked; e.noPts = !$('#h-pts').checked; e.pageNum = $('#h-pnum').checked; e.scoreTable = $('#h-score').checked; e.gradeKey = $('#h-grade').value; touch(); renderPaper(); }
       root.innerHTML = ''; root.onclick = null;
     };
   }
@@ -697,6 +882,13 @@ Regeln: Aufgabentext und Teilaufgaben wörtlich übernehmen, Formeln als LaTeX i
         }
         case 'e-new': { const e = newExam(); const s = await Store.save('exams', e); S.exams.unshift(s); location.hash = '#/pruefung/' + s.id; break; }
         case 'e-dup': { const c = clone(S.exams.find(e => e.id === id)); delete c._u; c.id = Store.uuid(); c.title += ' (Kopie)'; c.items.forEach(i => i.uid = Store.uuid()); const s = await Store.save('exams', c); S.exams.unshift(s); examsView(); break; }
+        case 'e-dupb': {
+          const c = clone(S.exams.find(e => e.id === id)); delete c._u; c.id = Store.uuid(); c.title = c.title.replace(/\s*\(Gruppe [AB]\)$/, '') + ' (Gruppe B)';
+          const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+          const slots = c.items.map((q, i) => q.type === 'block' ? -1 : i).filter(i => i >= 0), tasks = sh(slots.map(i => c.items[i]));
+          slots.forEach((i, k) => { c.items[i] = tasks[k]; });
+          c.items.forEach(q => { q.uid = Store.uuid(); if (q.type === 'mc') sh(q.options); });
+          const s = await Store.save('exams', c); S.exams.unshift(s); examsView(); toast('Gruppe B angelegt: Aufgaben und Antworten sind gemischt.'); break; }
         case 'e-del': if (confirm('Diese Prüfung wirklich löschen?')) { await Store.remove('exams', id); S.exams = S.exams.filter(e => e.id !== id); examsView(); } break;
         case 'e-head': openHead(); break;
         case 'menu': b.nextElementSibling.classList.toggle('open'); break;
