@@ -20,7 +20,7 @@ const Export = (() => {
     const doc = f.contentDocument;
     doc.open();
     doc.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${esc(exam.title || 'Prüfung')}${solutions ? ' – Lösungen' : ''}</title>
-      <link rel="stylesheet" href="${abs('vendor/katex.min.css')}"><link rel="stylesheet" href="${abs('css/paper.css?v=8')}">${exam.pageNum ? '<style>@page{@bottom-center{content:"Seite " counter(page) " von " counter(pages);font:9pt Arial,sans-serif;color:#555}}</style>' : ''}</head>
+      <link rel="stylesheet" href="${abs('vendor/katex.min.css')}"><link rel="stylesheet" href="${abs('css/paper.css?v=9')}">${exam.pageNum ? '<style>@page{@bottom-center{content:"Seite " counter(page) " von " counter(pages);font:9pt Arial,sans-serif;color:#555}}</style>' : ''}</head>
       <body><div class="paper" style="${esc(R.fontStyle(exam))}">${R.paper(exam, { solutions })}</div></body></html>`);
     doc.close();
     await new Promise(r => { f.onload = r; setTimeout(r, 1500); });

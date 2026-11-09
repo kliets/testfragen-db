@@ -182,12 +182,25 @@
     const SYMS = ['°', '²', '³', '½', '±', '·', '×', '÷', '→', '⇒', '≤', '≥', '≠', '≈', '√', '∞', 'π', 'Δ', 'α', 'β', 'γ', 'λ', 'μ', 'ρ', 'σ', 'φ', 'θ', 'ω', 'Ω', '€'];
     const COL_BTNS = Object.entries(R.COLORS).map(([k, v]) => `<button type="button" data-m="color" data-v="${k}" title="${R.COLOR_LABEL[k]}" style="background:${v}"></button>`).join('');
     const MARK_BTNS = Object.entries(R.MARKS).map(([k, v]) => `<button type="button" data-m="mark" data-v="${k}" title="${R.MARK_LABEL[k]}" style="background:${v}"></button>`).join('');
-    const tb = (gap = true) => `<div class="tbw"><div class="tb">
-      <span class="tbg"><button type="button" data-m="fmt" data-k="b" title="Fett (Strg/Cmd + B)"><b>F</b></button><button type="button" data-m="fmt" data-k="i" title="Kursiv (Strg/Cmd + I)"><i>K</i></button><button type="button" data-m="fmt" data-k="u" title="Unterstrichen (Strg/Cmd + U)"><u>U</u></button><button type="button" data-m="fmt" data-k="st" title="Durchgestrichen"><s>S</s></button><button type="button" data-m="fmt" data-k="hoch" title="Hochgestellt">x<sup>2</sup></button><button type="button" data-m="fmt" data-k="tief" title="Tiefgestellt">x<sub>2</sub></button></span>
-      <span class="tbg"><button type="button" data-m="pop" data-k="color" title="Schriftfarbe"><span class="ico-a">A</span></button><button type="button" data-m="pop" data-k="mark" title="Textmarker (Hintergrundfarbe)"><span class="ico-mark">ab</span></button><select data-size title="Schriftgröße der Auswahl"><option value="">Größe …</option><option value="klein">klein</option><option value="gross">groß</option><option value="riesig">sehr groß</option><option value="-">Normal</option></select></span>
-      <span class="tbg"><button type="button" data-m="fmt" data-k="l" title="Aufzählung">• Liste</button><button type="button" data-m="fmt" data-k="n" title="Nummerierte Liste">1. Liste</button><select data-head title="Überschrift für die markierten Zeilen"><option value="">Absatz …</option><option value="1">Überschrift 1</option><option value="2">Überschrift 2</option><option value="3">Überschrift 3</option><option value="0">Normaler Text</option></select><select data-align title="Ausrichtung der markierten Zeilen"><option value="">Ausrichtung …</option><option value="left">linksbündig</option><option value="center">zentriert</option><option value="right">rechtsbündig</option><option value="justify">Blocksatz</option></select></span>
-      <span class="tbg"><button type="button" data-m="fmt" data-k="f" title="Formel (LaTeX) einfügen">∑ Formel</button>${gap ? '<button type="button" data-m="fmt" data-k="g" title="Lücke im Text">▁ Lücke</button>' : ''}<button type="button" data-m="fmt" data-k="c" title="Code" style="font-family:monospace">&lt;/&gt;</button><button type="button" data-m="pop" data-k="table" title="Tabelle einfügen oder bearbeiten">▦ Tabelle</button><select data-box title="Markierte Zeilen in einen Kasten setzen"><option value="">Kasten …</option><option value="merke">Merksatz</option><option value="definition">Definition</option><option value="beispiel">Beispiel</option><option value="achtung">Achtung</option><option value="tipp">Tipp</option><option value="info">Info</option><option value="rahmen">Einfacher Rahmen</option></select></span>
-      <span class="tbg"><button type="button" data-m="fmt" data-k="hr" title="Trennlinie">― Linie</button><button type="button" data-m="fmt" data-k="pb" title="Neue Seite beginnen">⤓ Seitenumbruch</button><select class="sym" data-sym title="Sonderzeichen einfügen"><option value="">Zeichen …</option>${SYMS.map(x => `<option>${x}</option>`).join('')}</select></span>
+    const IC = {
+      list: '<svg viewBox="0 0 24 24"><circle cx="4.5" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.4" fill="currentColor" stroke="none"/><path d="M9.5 6H21M9.5 12H21M9.5 18H21"/></svg>',
+      nlist: '<svg viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11"/><text x="2" y="8" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">1</text><text x="2" y="14" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">2</text><text x="2" y="20" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">3</text></svg>',
+      align: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg>',
+      table: '<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 10h18M3 15h18M9 4.5v15M15 4.5v15"/></svg>',
+      box: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.8 6v12" stroke-width="4"/><path d="M10 10h8M10 14h5"/></svg>',
+      hr: '<svg viewBox="0 0 24 24"><path d="M3 12h18" stroke-width="2.4"/></svg>',
+      pb: '<svg viewBox="0 0 24 24"><path d="M6 3v6h12V3M6 21v-6h12v6"/><path d="M2 12h3M8 12h2.5M13.5 12h2.5M19 12h3" stroke-dasharray="0"/></svg>',
+      gap: '<svg viewBox="0 0 24 24"><path d="M3 18h18" stroke-width="2.2"/><path d="M7 11h10" stroke-dasharray="2 2.5"/></svg>',
+      mark: '<svg viewBox="0 0 24 24"><path d="M4 16l9-9 4 4-9 9H4z"/><path d="M13 7l2-2 4 4-2 2"/></svg>',
+      caret: '<i class="car">▾</i>'
+    };
+    const tbBtn = (m, k, ico, tip, extra = '') => `<button type="button" class="tbi" data-m="${m}" data-k="${k}" title="${tip}" aria-label="${tip}"${extra}>${ico}</button>`;
+    const tb = (gap = true) => `<div class="tbw"><div class="tb" role="toolbar" aria-label="Textformatierung">
+      <span class="tbg">${tbBtn('fmt', 'b', '<b>F</b>', 'Fett (Strg/Cmd+B)')}${tbBtn('fmt', 'i', '<i>K</i>', 'Kursiv (Strg/Cmd+I)')}${tbBtn('fmt', 'u', '<u>U</u>', 'Unterstrichen (Strg/Cmd+U)')}${tbBtn('fmt', 'st', '<s>S</s>', 'Durchgestrichen')}${tbBtn('fmt', 'hoch', 'x<sup>2</sup>', 'Hochgestellt')}${tbBtn('fmt', 'tief', 'x<sub>2</sub>', 'Tiefgestellt')}</span>
+      <span class="tbg">${tbBtn('pop', 'color', '<span class="ic-a"><b>A</b><i class="bar bar-c"></i></span>' + IC.caret, 'Schriftfarbe')}${tbBtn('pop', 'mark', '<span class="ic-a">' + IC.mark + '<i class="bar bar-m"></i></span>' + IC.caret, 'Textmarker (Hintergrundfarbe)')}${tbBtn('pop', 'size', '<span class="ic-sz"><small>A</small><big>A</big></span>' + IC.caret, 'Schriftgröße')}</span>
+      <span class="tbg">${tbBtn('fmt', 'l', IC.list, 'Aufzählung')}${tbBtn('fmt', 'n', IC.nlist, 'Nummerierte Liste')}${tbBtn('pop', 'head', '<b class="ic-h">Aa</b>' + IC.caret, 'Überschrift / Absatzformat')}${tbBtn('pop', 'align', IC.align + IC.caret, 'Ausrichtung')}</span>
+      <span class="tbg">${tbBtn('fmt', 'f', '<span class="ic-t">Σ</span>', 'Formel einfügen')}${gap ? tbBtn('fmt', 'g', IC.gap, 'Lücke im Text') : ''}${tbBtn('fmt', 'c', '<span class="ic-m">&lt;/&gt;</span>', 'Code')}${tbBtn('pop', 'table', IC.table + IC.caret, 'Tabelle einfügen / bearbeiten')}${tbBtn('pop', 'box', IC.box + IC.caret, 'Kasten (Merksatz, Definition, Beispiel …)')}</span>
+      <span class="tbg">${tbBtn('fmt', 'hr', IC.hr, 'Trennlinie')}${tbBtn('fmt', 'pb', IC.pb, 'Seitenumbruch')}${tbBtn('pop', 'sym', '<span class="ic-t">Ω</span>' + IC.caret, 'Sonderzeichen')}</span>
     </div><div class="pop" hidden></div></div>`;
     const CHEAT = `<details class="cheat"><summary>Schreibweise &amp; Layout-Hilfe</summary><table>
       <tr><td>**fett**  *kursiv*  __unterstrichen__  ~~durchgestrichen~~</td><td>Textformat (oder Knöpfe / Strg+B, I, U)</td></tr>
@@ -302,6 +315,7 @@
       if ((p === 'type' || p === 'answer') && e.type === 'change') { ensure(); redyn(); return; }
       preview();
     };
+    document.addEventListener('mousedown', e => { if (!e.target.closest || !e.target.closest('.tbw')) document.querySelectorAll('.tbw .pop').forEach(x => x.hidden = true); });
     form.addEventListener('keydown', e => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.target.tagName !== 'TEXTAREA' || !e.target.previousElementSibling || !e.target.previousElementSibling.classList.contains('tbw')) return;
       const k = { b: 'b', i: 'i', u: 'u' }[e.key.toLowerCase()]; if (k) { e.preventDefault(); fmtText(e.target, k); }
@@ -435,18 +449,26 @@
         case 'c': return wrapSel(ta, '`', '`', 'code');
       }
     };
+    const mi = (o, v, inner, cls = '') => `<button type="button" class="mi ${cls}" data-m="opt" data-o="${o}" data-v="${v}">${inner}</button>`;
     const popHtml = (kind, ta) => {
-      if (kind === 'color') return `<div class="sw"><b style="font-size:12.5px">Schriftfarbe</b>${COL_BTNS}<input type="color" data-colorpick value="#c00000" title="Eigene Farbe wählen"><button type="button" class="txt" data-m="color" data-v="">Farbe entfernen</button></div><small>Erst Text markieren, dann Farbe wählen. Gilt auch im PDF- und ODT-Export.</small>`;
-      if (kind === 'mark') return `<div class="sw"><b style="font-size:12.5px">Textmarker</b>${MARK_BTNS}<input type="color" data-markpick value="#fff176" title="Eigene Farbe wählen"><button type="button" class="txt" data-m="mark" data-v="">Markierung entfernen</button></div>`;
+      if (kind === 'color') return `<div class="pt">Schriftfarbe</div><div class="sw">${COL_BTNS}<input type="color" data-colorpick value="#c00000" title="Eigene Farbe"></div><button type="button" class="mi" data-m="color" data-v="">✕ Farbe entfernen</button>`;
+      if (kind === 'mark') return `<div class="pt">Textmarker</div><div class="sw">${MARK_BTNS}<input type="color" data-markpick value="#fff176" title="Eigene Farbe"></div><button type="button" class="mi" data-m="mark" data-v="">✕ Markierung entfernen</button>`;
+      if (kind === 'size') return `<div class="pt">Schriftgröße</div>${mi('size', 'klein', '<span style="font-size:.85em">Klein</span>')}${mi('size', '-', 'Normal')}${mi('size', 'gross', '<span style="font-size:1.25em">Groß</span>')}${mi('size', 'riesig', '<span style="font-size:1.55em">Sehr groß</span>')}`;
+      if (kind === 'head') return `<div class="pt">Absatzformat</div>${mi('head', '1', '<b style="font-size:1.3em">Überschrift 1</b>')}${mi('head', '2', '<b style="font-size:1.15em">Überschrift 2</b>')}${mi('head', '3', '<b><u>Überschrift 3</u></b>')}${mi('head', '0', 'Normaler Text')}`;
+      if (kind === 'align') return `<div class="pt">Ausrichtung</div>${[['left', 'Linksbündig', 'M4 6h16M4 10h10M4 14h16M4 18h10'], ['center', 'Zentriert', 'M4 6h16M7 10h10M4 14h16M7 18h10'], ['right', 'Rechtsbündig', 'M4 6h16M10 10h10M4 14h16M10 18h10'], ['justify', 'Blocksatz', 'M4 6h16M4 10h16M4 14h16M4 18h16']].map(([v, t, d]) => mi('align', v, `<svg viewBox="0 0 24 24" class="mic"><path d="${d}"/></svg>${t}`)).join('')}`;
+      if (kind === 'box') return `<div class="pt">Kasten um die markierten Zeilen</div>${[['merke', 'Merksatz'], ['definition', 'Definition'], ['beispiel', 'Beispiel'], ['achtung', 'Achtung'], ['tipp', 'Tipp'], ['info', 'Info'], ['rahmen', 'Einfacher Rahmen']].map(([v, t]) => { const K = R.BOXES[v]; return mi('box', v, `<span class="boxchip" style="--bar:${K.bar};--bg:${K.bg}"></span>${t}`); }).join('')}`;
+      if (kind === 'sym') return `<div class="pt">Sonderzeichen</div><div class="symgrid">${SYMS.map(x => mi('sym', x, x, 'symb')).join('')}</div>`;
       const inT = !!tableAt(ta);
-      return `<div class="tr"><label>Zeilen<input type="number" min="1" max="30" value="3" data-t="rows"></label><label>Spalten<input type="number" min="1" max="8" value="3" data-t="cols"></label><label class="ck"><input type="checkbox" data-t="head" checked> mit Kopfzeile</label><button type="button" class="btn sm primary" data-m="tbl-ins">Tabelle einfügen</button></div>
-        <div class="tr"><span style="font-size:12.5px;color:var(--muted)">${inT ? 'Cursor steht in einer Tabelle:' : 'Tabelle bearbeiten (Cursor in die Tabelle setzen):'}</span><button type="button" class="btn sm" data-m="tbl-op" data-op="row+" ${inT ? '' : 'disabled'}>+ Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="row-" ${inT ? '' : 'disabled'}>− Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col+" ${inT ? '' : 'disabled'}>+ Spalte</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col-" ${inT ? '' : 'disabled'}>− Spalte</button></div>
-        <small>Leere Zellen bleiben als Schreibfeld für die Lernenden. Spaltenausrichtung: in der Trennzeile <code>:---</code> links, <code>:---:</code> mittig, <code>---:</code> rechts.</small>`;
+      return `<div class="pt">Tabelle</div><div class="tr"><label>Zeilen<input type="number" min="1" max="30" value="3" data-t="rows"></label><label>Spalten<input type="number" min="1" max="8" value="3" data-t="cols"></label><label class="ck"><input type="checkbox" data-t="head" checked> mit Kopfzeile</label><button type="button" class="btn sm primary" data-m="tbl-ins">Einfügen</button></div>
+        <div class="pt" style="margin-top:6px">Bestehende Tabelle ändern ${inT ? '' : '<small>(Cursor in die Tabelle setzen)</small>'}</div><div class="tr"><button type="button" class="btn sm" data-m="tbl-op" data-op="row+" ${inT ? '' : 'disabled'}>+ Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="row-" ${inT ? '' : 'disabled'}>− Zeile</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col+" ${inT ? '' : 'disabled'}>+ Spalte</button><button type="button" class="btn sm" data-m="tbl-op" data-op="col-" ${inT ? '' : 'disabled'}>− Spalte</button></div>
+        <small>Leere Zellen = Schreibfeld für die Lernenden.</small>`;
     };
     const togglePop = (b, kind) => {
       const w = b.closest('.tbw'), pop = w.querySelector('.pop'), ta = w.nextElementSibling;
       if (!pop.hidden && pop.dataset.kind === kind) { pop.hidden = true; return; }
       pop.dataset.kind = kind; pop.innerHTML = popHtml(kind, ta); pop.hidden = false;
+      const maxL = Math.max(0, w.clientWidth - pop.offsetWidth - 4);
+      pop.style.left = Math.max(0, Math.min(b.offsetLeft - 4, maxL)) + 'px';
     };
     const addImages = async files => {
       for (const f of files) { if (!/^image\//.test(f.type)) continue; try { d.images.push({ src: await fileToDataUrl(f), w: 60 }); } catch (err) { toast('Bild konnte nicht geladen werden.'); } }
@@ -464,7 +486,16 @@
         case 'part-del': d.parts.splice(i, 1); redyn(); break;
         case 'fmt': { const ta = b.closest('.tbw').nextElementSibling; if (ta) fmtText(ta, b.dataset.k); break; }
         case 'pop': togglePop(b, b.dataset.k); break;
-        case 'color': case 'mark': { const ta = b.closest('.tbw').nextElementSibling; setGroup(ta, b.dataset.m === 'color' ? 'c' : 'bg', b.dataset.v); b.closest('.pop').hidden = true; break; }
+        case 'opt': {
+          const ta = b.closest('.tbw').nextElementSibling, o = b.dataset.o, v = b.dataset.v;
+          if (o === 'size') setSize(ta, v);
+          else if (o === 'head') { const lv = +v; replLines(ta, seg => seg.map(l => !l.trim() ? l : (lv ? '#'.repeat(lv) + ' ' : '') + l.replace(/^\s*#{1,3}\s+/, ''))); }
+          else if (o === 'align') alignWrap(ta, v);
+          else if (o === 'box') boxWrap(ta, v);
+          else if (o === 'sym') { const x = ta.selectionStart; ta.value = ta.value.slice(0, x) + v + ta.value.slice(ta.selectionEnd); ta.setSelectionRange(x + v.length, x + v.length); ta.focus(); fire(ta); }
+          b.closest('.pop').hidden = true; break;
+        }
+        case 'color': case 'mark': { const ta = b.closest('.tbw').nextElementSibling; setGroup(ta, b.dataset.m === 'color' ? 'c' : 'bg', b.dataset.v); if (b.dataset.v) b.closest('.tbw').style.setProperty(b.dataset.m === 'color' ? '--cc' : '--cm', getComputedStyle(b).backgroundColor); b.closest('.pop').hidden = true; break; }
         case 'tbl-ins': {
           const pop = b.closest('.pop'), ta = b.closest('.tbw').nextElementSibling, g = k => pop.querySelector('[data-t=' + k + ']');
           const rows = Math.max(1, Math.min(30, +g('rows').value || 3)), cols = Math.max(1, Math.min(8, +g('cols').value || 3));
@@ -487,7 +518,7 @@
     };
     root.onchange = async e => {
       const tgt = e.target;
-      if (tgt.matches && tgt.matches('[data-colorpick],[data-markpick]')) { const ta = tgt.closest('.tbw').nextElementSibling; setGroup(ta, tgt.matches('[data-colorpick]') ? 'c' : 'bg', tgt.value); tgt.closest('.pop').hidden = true; return; }
+      if (tgt.matches && tgt.matches('[data-colorpick],[data-markpick]')) { const ta = tgt.closest('.tbw').nextElementSibling; setGroup(ta, tgt.matches('[data-colorpick]') ? 'c' : 'bg', tgt.value); tgt.closest('.tbw').style.setProperty(tgt.matches('[data-colorpick]') ? '--cc' : '--cm', tgt.value); tgt.closest('.pop').hidden = true; return; }
       if (tgt.matches && tgt.matches('[data-size],[data-head],[data-align],[data-box]')) {
         const ta = tgt.closest('.tbw').nextElementSibling, v = tgt.value; tgt.value = ''; if (!v && v !== '0') return;
         if (tgt.matches('[data-size]')) setSize(ta, v);
